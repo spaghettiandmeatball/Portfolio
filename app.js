@@ -5,9 +5,9 @@ import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals' },
-  { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM', embed: 'https://www.youtube.com/embed/Y0ORyzqeXgM?playsinline=1' },
-  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube.com/embed/DIEdCnECGjg?playsinline=1' },
-  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', embed: 'https://www.instagram.com/reel/DdUcDmelR2F/embed/' },
+  { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM' },
+  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg' },
+  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/' },
   { group: 'Words With Friends', title: 'Bonus Pass', kind: 'pass' },
   { group: 'Merge Dragons', title: 'Dragon Breeding', kind: 'breeding', image: 'project-dragon-breeding.png' },
   { group: 'Merge Dragons', title: 'FTUE Revamp', kind: 'ftue', image: 'project-ftue.png' },
@@ -35,6 +35,7 @@ const announcement = document.querySelector('#announcement');
 let paused = reduced.matches;
 let autoplay = !reduced.matches;
 let projectElapsed = 0;
+let slideWobble = 0;
 const PROJECT_DURATION = 7;
 let speech, characters = [], audience = [], cart, cartScreen, elapsed = reduced.matches ? 7 : 0, selected = 0, showing = 0;
 let slideTexture, slideCanvas, slideContext, chonkimalsImage;
@@ -55,22 +56,8 @@ const shot = new Image(); shot.src = './assets/chonkimals-preview.png';
 shot.onload = () => { chonkimalsImage = shot; drawSlide(); };
 document.fonts.load('600 108px Fredoka').then(drawSlide);
 const projectButtons = [...document.querySelectorAll('[data-project]')];
-const watchClip = document.querySelector('#watch-clip'), clipDialog = document.querySelector('#clip-dialog');
-const clipFrame = document.querySelector('#clip-frame'), clipTitle = document.querySelector('#clip-title'), clipSource = document.querySelector('#clip-source');
-function openClip() {
-  const project = projects[selected]; if (!project.video) return;
-  clipTitle.textContent = project.title; clipSource.href = project.video;
-  clipSource.textContent = project.video.includes('instagram.com') ? 'Watch on Instagram ↗' : 'Watch on YouTube ↗';
-  const frame = document.createElement('iframe');
-  frame.title = `${project.title} video preview`; frame.src = project.embed; frame.allow = 'autoplay; encrypted-media; picture-in-picture; web-share'; frame.allowFullscreen = true;
-  frame.referrerPolicy = 'strict-origin-when-cross-origin';
-  clipFrame.replaceChildren(frame);
-  clipDialog.showModal(); projectElapsed = 0;
-}
-watchClip.addEventListener('click', openClip);
-document.querySelector('#close-clip').addEventListener('click', () => clipDialog.close());
-clipDialog.addEventListener('click', event => { if (event.target === clipDialog) clipDialog.close(); });
-clipDialog.addEventListener('close', () => clipFrame.replaceChildren());
+const watchClip = document.querySelector('#watch-clip');
+watchClip.addEventListener('click', () => { projectElapsed = 0; });
 
 function updateMotion() {
   motionButton.innerHTML = `${paused ? 'Resume' : 'Pause'} motion <span aria-hidden="true">${paused ? '▷' : 'Ⅱ'}</span>`;
@@ -88,11 +75,14 @@ autoplayButton.addEventListener('click', () => { autoplay = !autoplay; projectEl
 
 function showProject(index, announce = false) {
   projectElapsed = 0;
-  selected = (index + projects.length) % projects.length;
+  const next = (index + projects.length) % projects.length;
+  if (next !== selected && !reduced.matches) slideWobble = 1;
+  selected = next;
   const project = projects[selected];
   document.querySelector('#project-group').textContent = project.group;
   document.querySelector('#project-title').textContent = project.title;
   watchClip.hidden = !project.video;
+  if (project.video) watchClip.href = project.video;
   document.querySelector('#project-number').textContent = `${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
   projectButtons.forEach((button, i) => button.setAttribute('aria-current', String(i === selected)));
   drawSlide();
@@ -116,10 +106,7 @@ function drawSlide() {
     c.fillStyle = 'rgba(39,34,25,.77)'; c.fillRect(0, h - 133, w, 133);
     c.textAlign = 'left'; c.fillStyle = '#fff8e9'; c.font = '600 28px Fredoka, sans-serif'; c.fillText(p.group.toLowerCase(), 43, h - 101);
     c.font = '600 70px Fredoka, sans-serif'; c.fillText(p.title.toLowerCase(), 40, h - 24, w - 80);
-    if (p.video) {
-      c.fillStyle = '#f2ce5b'; c.beginPath(); c.arc(w - 84, h - 67, 34, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#4b3828'; c.beginPath(); c.moveTo(w - 93, h - 86); c.lineTo(w - 93, h - 48); c.lineTo(w - 62, h - 67); c.closePath(); c.fill();
-    }
+    if (p.video) drawVideoCue(c, w / 2, 257);
   } else {
     const ink = merge ? '#355646' : '#49362c', accent = merge ? '#77945d' : '#b87149';
     c.strokeStyle = accent; c.lineWidth = 4; c.setLineDash([7, 12]);
@@ -134,10 +121,26 @@ function drawSlide() {
     c.textAlign = 'center';
     const startY = titleLines.length === 1 ? 365 : 300;
     titleLines.forEach((line, i) => c.fillText(line, w / 2, startY + i * 125, w - 130));
-    c.beginPath(); c.moveTo(285, 492); c.bezierCurveTo(440, 522, 600, 476, 739, 500); c.strokeStyle = accent; c.lineWidth = 10; c.lineCap = 'round'; c.stroke();
-    c.font = '500 26px Fredoka, sans-serif'; c.fillStyle = accent; c.fillText(p.video ? 'press the screen to watch the clip' : 'a little look at joel’s work', w / 2, 572);
+    if (p.video) drawVideoCue(c, w / 2, 510);
+    else {
+      c.beginPath(); c.moveTo(285, 492); c.bezierCurveTo(440, 522, 600, 476, 739, 500); c.strokeStyle = accent; c.lineWidth = 10; c.lineCap = 'round'; c.stroke();
+      c.font = '500 26px Fredoka, sans-serif'; c.fillStyle = accent; c.fillText('a little look at joel’s work', w / 2, 572);
+    }
   }
   if (slideTexture) slideTexture.needsUpdate = true;
+}
+
+function drawVideoCue(c, x, y) {
+  c.save();
+  c.shadowColor = 'rgba(34,24,17,.35)'; c.shadowBlur = 18; c.shadowOffsetY = 8;
+  c.fillStyle = '#fff7de'; c.strokeStyle = '#4b3828'; c.lineWidth = 6;
+  c.beginPath(); c.roundRect(x - 235, y - 53, 470, 106, 18); c.fill(); c.stroke();
+  c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+  c.fillStyle = '#f2ce5b'; c.beginPath(); c.arc(x - 170, y, 38, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#4b3828'; c.lineWidth = 4; c.stroke();
+  c.fillStyle = '#4b3828'; c.beginPath(); c.moveTo(x - 179, y - 18); c.lineTo(x - 179, y + 18); c.lineTo(x - 147, y); c.closePath(); c.fill();
+  c.fillStyle = '#4b3828'; c.textAlign = 'left'; c.font = '600 39px Fredoka, sans-serif'; c.fillText('WATCH THE CLIP', x - 112, y + 14);
+  c.restore();
 }
 
 function makeHardHat() {
@@ -196,6 +199,11 @@ function makeWorksite(scene) {
   const boxLid = new THREE.Mesh(new THREE.BoxGeometry(.96, .13, .52), dark); boxLid.position.y = .53; boxLid.castShadow = true; toolbox.add(boxLid);
   const handle = new THREE.Mesh(new THREE.TorusGeometry(.18, .045, 8, 18, Math.PI), steel); handle.position.y = .66; handle.rotation.z = Math.PI; toolbox.add(handle);
   const latch = new THREE.Mesh(new THREE.BoxGeometry(.11, .1, .025), pale); latch.position.set(0, .44, .275); toolbox.add(latch);
+  const snackMat = new THREE.MeshStandardMaterial({ color: 0xd7a465, roughness: .95 });
+  const snacks = [-1, 0, 1].map(() => {
+    const snack = new THREE.Mesh(new THREE.DodecahedronGeometry(.13, 0), snackMat);
+    snack.castShadow = true; snack.visible = false; toolbox.add(snack); return snack;
+  });
   const pulses = { shovel: -Infinity, toolbox: -Infinity };
   let span = 12;
   return {
@@ -215,10 +223,24 @@ function makeWorksite(scene) {
       return null;
     },
     bump(type, t) { if (type in pulses) pulses[type] = t; },
-    update(t) {
+    update(t, mishap, mishapAge, hiddenByHole) {
       const progress = Math.max(.001, Math.min(1, (t - .25) / 3.2)); tape.scale.x = span * progress; tape.position.x = -span / 2 + span * progress / 2; tape.rotation.z = Math.sin(t * 1.4) * .006 * progress;
       const sway = type => { const age = t - pulses[type]; return age >= 0 && age < 1 ? Math.sin(age * 22) * (1 - age) * .19 : 0; };
       shovel.rotation.z = -.14 + sway('shovel'); toolbox.rotation.z = sway('toolbox');
+      const coneAge = !hiddenByHole && mishap === 'cone' ? mishapAge : -1;
+      const tip = coneAge < 0 ? 0 : Math.min(1, coneAge / .3) * (1 - Math.min(1, Math.max(0, (coneAge - 1.8) / .55)));
+      cones[0].rotation.z = tip * 1.15 + (tip ? Math.sin(coneAge * 18) * .025 : 0);
+      const snackAge = !hiddenByHole && mishap === 'snacks' ? mishapAge : -1;
+      const lidLift = snackAge < 0 ? 0 : Math.sin(Math.PI * Math.min(1, snackAge / 1.2)) * .28;
+      boxLid.position.y = .53 + lidLift; handle.position.y = .66 + lidLift;
+      snacks.forEach((snack, i) => {
+        const age = snackAge - .2 - i * .1;
+        snack.visible = age >= 0 && age < 2.2;
+        if (!snack.visible) return;
+        const p = Math.min(1, age / 1.5);
+        snack.position.set((i - 1) * (.15 + p * .26), .64 + Math.sin(Math.PI * p) * (1.05 + i * .13), .18 + p * .28);
+        snack.rotation.set(age * 7, age * 4, age * 5);
+      });
     }
   };
 }
@@ -280,11 +302,13 @@ async function init() {
   const worksite = makeWorksite(scene), trapHole = makeTrapHole(scene); cart = makeCart(scene);
   const dangerButton = document.querySelector('#danger-button'), dangerText = dangerButton.querySelector('.danger-text'), voiceLayer = document.querySelector('#hole-voices');
   const holeEvent = { active: false, started: 0 };
+  const mishap = { type: null, started: 0, nextAt: 16, count: 0, spoken: false };
   const holeLines = ['It said not to press!', 'Do you not believe in Chonkimal rights?', 'Ouch.', 'This was not in the risk assessment.', 'Tell Joel we tried.'];
   dangerButton.addEventListener('click', () => {
     if (holeEvent.active) return;
     elapsed = Math.max(elapsed, 7);
     holeEvent.active = true; holeEvent.started = performance.now();
+    mishap.type = null; mishap.nextAt = elapsed + 27;
     dangerButton.disabled = true; dangerButton.classList.add('is-pressed'); dangerText.textContent = 'TOO LATE';
     voiceLayer.replaceChildren();
     holeLines.forEach((line, i) => {
@@ -333,7 +357,7 @@ async function init() {
   function hit(event) { const r = renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX - r.left) / r.width * 2 - 1, -(event.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(pointer, camera); const main = characters.findIndex(c => raycaster.intersectObject(c.root, true).length); if (main >= 0) return { type: 'main', index: main }; const guest = audience.findIndex(c => raycaster.intersectObject(c.root, true).length); if (guest >= 0) return { type: 'guest', index: guest }; const prop = worksite.hit(raycaster); if (prop) return { type: 'prop', name: prop }; if (cartScreen && raycaster.intersectObject(cartScreen).length) return { type: 'screen' }; return null; }
   function react(target, announce = false) {
     if (holeEvent.active) return;
-    if (!target) return; if (target.type === 'screen') { if (announce && projects[selected].video) openClip(); else if (announce) showProject(selected + 1, true); return; }
+    if (!target) return; if (target.type === 'screen') { if (announce && projects[selected].video) watchClip.click(); else if (announce) showProject(selected + 1, true); return; }
     if (target.type === 'prop') { const name = target.name, choices = propLines[name], line = choices[propCounts[name]++ % choices.length]; say(name === 'toolbox' ? '2' : '0', line); worksite.bump(name, elapsed); if (announce) announcement.textContent = line; return; }
     if (target.type === 'guest') {
       const c = audience[target.index], now = performance.now();
@@ -360,8 +384,21 @@ async function init() {
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), .04); if (document.hidden) return;
     if (!paused) elapsed += dt;
+    if (!paused && !holeEvent.active && !mishap.type && elapsed >= mishap.nextAt) {
+      mishap.type = mishap.count++ % 2 === 0 ? 'cone' : 'snacks';
+      mishap.started = elapsed; mishap.nextAt = elapsed + 29 + (mishap.count % 2) * 7; mishap.spoken = false;
+    }
+    const mishapAge = mishap.type ? elapsed - mishap.started : -1;
+    if (mishap.type && mishapAge > .55 && !mishap.spoken && !holeEvent.active) {
+      const line = mishap.type === 'cone' ? 'That was a safety drill.' : 'Those were load-bearing snacks.';
+      say(mishap.type === 'cone' ? '0' : '2', line); announcement.textContent = line;
+      lastLine = elapsed; mishap.spoken = true;
+    }
+    if (mishap.type && mishapAge > 3.2) mishap.type = null;
     const move = Math.min(1, Math.max(0, (elapsed - .4) / 3.4)); const eased = 1 - (1 - move) ** 3;
     cart.position.x = (mobile ? 8 : 12) * (1 - eased); cart.rotation.y = Math.sin(Math.PI * move) * -.045;
+    slideWobble = paused ? 0 : Math.max(0, slideWobble - dt * 2.6);
+    cart.rotation.z = Math.sin((1 - slideWobble) * Math.PI * 3) * slideWobble * .022;
     characters.forEach((c, i) => {
       const home = mobile ? [-3.5, 2.35, 3.55][i] : compact ? [-4.8, 3, 4.8][i] : [-5.45, 3.25, 5.45][i];
       if (i === 1) c.root.position.x = home + (mobile ? 6 : 9) * (1 - eased); else c.root.position.x = home;
@@ -384,6 +421,13 @@ async function init() {
           if (i === 1) c.root.rotation.z = Math.sin(p * Math.PI * 6) * .17 * Math.sin(p * Math.PI);
           if (i === 2) c.root.rotation.y += Math.PI * 2 * (p * p * (3 - 2 * p));
         }
+      }
+      if (mishap.type === 'cone' && i === 0 && mishapAge > 1.25 && mishapAge < 2.7) {
+        const fix = Math.sin((mishapAge - 1.25) / 1.45 * Math.PI);
+        c.root.position.x -= fix * .17; c.root.position.y += fix * .22; c.root.rotation.z -= fix * .13;
+      }
+      if (mishap.type === 'snacks' && i === 2 && mishapAge > .3 && mishapAge < 2.4) {
+        c.root.rotation.z += Math.sin(mishapAge * 13) * .08 * (1 - mishapAge / 2.4);
       }
       const state = i === 1 && move < 1 ? 'walking' : placingTape ? 'running' : !c.hasJump ? 'idle' : t < .4 ? 'jumping_up' : t < .85 ? 'falling_idle' : t < 1.1 ? 'hard_landing' : 'idle';
       if (!paused) c.actor.update(dt, state);
@@ -432,10 +476,10 @@ async function init() {
         say('1', 'We are adding that to the incident report.');
       }
     }
-    worksite.update(elapsed); scene.updateMatrixWorld(true);
+    worksite.update(elapsed, mishap.type, mishapAge, holeEvent.active); scene.updateMatrixWorld(true);
     for (const c of characters) { if (!c.hat) continue; const point = c.headTop.getWorldPosition(new THREE.Vector3()); c.hat.position.copy(c.root.worldToLocal(point)); c.hat.position.y += .07; }
     if (!holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
-    if (autoplay && !paused && !holeEvent.active && !clipDialog.open) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
+    if (autoplay && !paused && !holeEvent.active) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
     speech.update(paused ? 0 : dt, camera, (key, out) => { if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
     renderer.render(scene, camera);
