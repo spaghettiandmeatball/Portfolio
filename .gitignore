@@ -1,0 +1,18 @@
+# Dependencies & Environment
+node_modules/
+.env
+.env.*
+
+# AI & Editor tooling
+.openai/
+.claude/
+.anthropic/
+.gemini/
+.cursor/
+.vscode/
+.idea/
+
+# OS & Build caches
+.DS_Store
+Thumbs.db
+*.log
