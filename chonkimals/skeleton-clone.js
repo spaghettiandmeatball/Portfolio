@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 /**
- * Local port of Three.js r170 SkeletonUtils.clone to support standalone module imports.
+ * Local port of three r170 `SkeletonUtils.clone` — the `three/addons/utils/
+ * SkeletonUtils.js` addon is not on WIM's publish allowlist.
  *
  * `Object3D.clone()` alone leaves cloned SkinnedMeshes bound to the SOURCE
  * bones, so every instance would animate together. This rebinds each cloned

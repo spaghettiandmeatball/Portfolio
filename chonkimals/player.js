@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /**
- * Characters — loads a character GLB once (frog.glb at NATURAL size, ~2
+ * Characters — loads a character GLB once (frog_wim.glb at NATURAL size, ~2
  * units tall), zeroes root motion, and stamps out independent animated
  * instances for the player and bots, each driving an animation state machine.
  */
@@ -40,7 +40,7 @@ export function setPoseOverlay(root                          , fn               
   else poseOverlays.delete(root);
 }
 
-const FROG_URL = 'assets/frog.glb';
+const FROG_URL = 'assets/frog_wim.glb';
 
                                                          
                                                      

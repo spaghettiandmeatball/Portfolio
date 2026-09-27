@@ -8,7 +8,7 @@ import * as THREE from 'three';
                                      
                                        
 
-const LIFETIME     = 5.6;   // seconds a bubble stays up
+const LIFETIME     = 3.5;   // seconds a bubble stays up
 const FADE_OUT     = 0.4;   // last part of the lifetime spent fading
 const NEAR_FULL    = 100;     // full size inside this camera distance
 const MIN_SCALE    = 0.6;
