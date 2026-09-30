@@ -183,6 +183,7 @@ html{scroll-behavior:smooth}
 .intro,.preview,.about-panel{transition:opacity .24s ease}
 main.is-traveling .intro,main.is-traveling .preview,main.is-traveling .about-panel{opacity:0;pointer-events:none}
 .intro-about[hidden],.intro-work[hidden],.preview[hidden],.about-panel[hidden]{display:none}
+main[data-view=about] .intro{padding:0}
 .about-scenery-viewport{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
 .about-scenery{position:absolute;inset:5px 4% 0;overflow:hidden;border-radius:25px;background:linear-gradient(160deg,#e7efe5,#dbe5d8 67%,#cbdccc);transform:translateX(calc((1 - var(--scene-progress,0)) * 110%));pointer-events:none}
 .danger-button[hidden]{display:none}
@@ -199,7 +200,7 @@ main[data-view=about] .playground{margin-bottom:20px}
 .about-lead a{color:inherit;text-decoration-color:#72977a;text-decoration-thickness:2px;text-underline-offset:4px}
 .about-lead a:hover{color:#4f7659}
 .contact-card{padding:12px 0 12px clamp(24px,3vw,40px);border-left:1px solid #b8cbb9}
-.contact-card h3{margin:8px 0 8px;font:600 36px/1 Fredoka,system-ui,sans-serif;letter-spacing:-.04em;color:#31523c}
+.contact-card h2{margin:8px 0 8px;font:600 36px/1 Fredoka,system-ui,sans-serif;letter-spacing:-.04em;color:#31523c}
 .contact-actions{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:14px}
 .contact-link{display:inline-flex;align-items:center;gap:10px;padding:0 0 4px;border-bottom:2px solid #5a775e;color:#31523c;text-decoration:none;font:600 16px Fredoka,system-ui,sans-serif}
 .contact-link:hover{color:#b36443}
