@@ -75,7 +75,7 @@ footer{display:flex;justify-content:center;margin:0 5%;padding:24px 0 26px;borde
   .cc-bubble-body{width:min(170px,52vw)!important;font-size:13px!important;padding:9px 10px!important}
 }
 
-.danger-button{position:absolute;z-index:9;left:50%;bottom:-12px;transform:translateX(-50%) rotate(-3deg);display:flex;align-items:center;gap:9px;padding:8px 15px 8px 9px;border:3px solid #563b2b;border-radius:9px;background:#f6cc52;color:#4b3027;box-shadow:4px 5px 0 #a97545;font:700 14px Fredoka,system-ui,sans-serif;letter-spacing:.035em;white-space:nowrap;cursor:pointer;transition:transform .18s,box-shadow .18s}
+.danger-button{position:absolute;z-index:14;left:50%;bottom:-12px;transform:translateX(-50%) rotate(-3deg);display:flex;align-items:center;gap:9px;padding:8px 15px 8px 9px;border:3px solid #563b2b;border-radius:9px;background:#f6cc52;color:#4b3027;box-shadow:4px 5px 0 #a97545;font:700 14px Fredoka,system-ui,sans-serif;letter-spacing:.035em;white-space:nowrap;cursor:pointer;transition:transform .18s,box-shadow .18s}
 .danger-button:hover{transform:translateX(-50%) rotate(2deg) translateY(-4px);box-shadow:5px 7px 0 #a97545}
 .danger-button:active,.danger-button.is-pressed{transform:translateX(-50%) rotate(0) translateY(3px);box-shadow:1px 1px 0 #a97545}
 .danger-button:disabled{cursor:default}
@@ -84,7 +84,7 @@ footer{display:flex;justify-content:center;margin:0 5%;padding:24px 0 26px;borde
 .hole-voices{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden}
 .hole-voice{position:absolute;left:50%;top:82%;width:max-content;max-width:min(230px,60vw);padding:10px 14px;border:2px solid #3d2412;border-radius:14px;background:#fffdf6;color:#342319;box-shadow:3px 4px 0 #6c503b55;text-align:center;font:700 16px/1.15 Fredoka,system-ui,sans-serif;opacity:0;animation:hole-voice-fly 3.1s ease-out both;animation-delay:var(--delay)}
 @keyframes hole-voice-fly{0%{opacity:0;transform:translate(-50%,0) scale(.25) rotate(0)}15%{opacity:1}72%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),var(--dy)) scale(1.06) rotate(var(--tilt))}}
-@media(max-width:760px){.danger-button{bottom:78px;padding:7px 10px 7px 7px;font-size:12px;gap:6px}.danger-light{width:21px;height:21px}.hole-voice{top:70%;font-size:13px;max-width:43vw;padding:8px 9px}}
+@media(max-width:760px){.danger-button{bottom:14px;padding:7px 10px 7px 7px;font-size:12px;gap:6px}.danger-light{width:21px;height:21px}.hole-voice{top:70%;font-size:13px;max-width:43vw;padding:8px 9px}}
 @media(prefers-reduced-motion:reduce){.hole-voice{animation:none;opacity:1;left:50%;top:60%;transform:translateX(-50%)}.hole-voice:not(:first-child){display:none}}
 @media(max-width:420px){.preview-current{display:block}.preview-controls{justify-content:flex-start;margin-top:14px}.preview-current h2{max-width:none}.cc-bubble-body{width:155px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
@@ -266,3 +266,63 @@ main[data-view=about] .playground{margin-bottom:20px}
   .contact-card h2{font-size:28px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.about-scenery{transition:none}.about-panel{animation:none}}
+
+/* A stable navigation rail, separate from changing project titles and copy. */
+.preview{padding:0 40px 32px;border:1.5px dashed #b48b62;border-radius:10px;box-shadow:5px 6px 0 #e8d7b9,6px 7px 0 #c8a77c,11px 13px 0 #ecdfc8;background:#fbf3e2}
+.preview::before,.preview::after{display:block;top:-11px;width:66px;height:23px;background:repeating-linear-gradient(90deg,#e2c28d99 0 2px,#e9cf9faa 2px 5px);border:1px solid #cba57044;opacity:.9;z-index:13}
+.preview::before{left:24px;transform:rotate(-8deg)}
+.preview::after{right:26px;transform:rotate(7deg)}
+.work-toolbar{position:sticky;top:0;z-index:12;display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:86px;margin:0 -40px;padding:16px 40px;background:#f1e3c7;border-bottom:1px dashed #b99469;border-radius:10px 10px 0 0;box-shadow:0 4px 0 #b89b7220}
+.work-toolbar .preview-label{font-size:18px;letter-spacing:0;padding:6px 10px;background:#f8d983;border:1px solid #cda65b;border-radius:3px;box-shadow:2px 3px 0 #b48b6233;transform:rotate(-3deg);white-space:nowrap}
+.work-toolbar .preview-label::before{display:none}
+.work-navigation{display:flex;align-items:center;gap:28px}
+.work-toolbar .autoplay{font:500 12px 'DM Sans',sans-serif;border:0;color:var(--muted);min-height:44px;padding:8px 0}
+.work-toolbar .preview-controls{margin:0;gap:12px}
+.work-toolbar .preview-controls button{width:44px;height:44px;box-shadow:2px 3px 0 #c6a27a;border:1.5px solid #8c694a;border-radius:8px;font-size:23px;transform:none}
+.work-toolbar .preview-controls button:hover{background:#e8edcd;box-shadow:2px 3px 0 #9b9f76}
+.work-toolbar .preview-controls button:active{box-shadow:0 1px 0 #c6a27a}
+.work-toolbar .autoplay-track{position:absolute;bottom:-1px;left:0;right:0;height:2px;border-radius:0;background:transparent}
+.preview-current{display:block;padding:38px 0 28px}
+.preview-current h2{font-size:clamp(34px,4.7vw,56px);line-height:1.12;max-width:850px}
+.preview-current p{font-size:11px;margin-bottom:10px;letter-spacing:.08em}
+.watch-clip{margin-top:22px;box-shadow:3px 4px 0 #bdc399;border-width:1.5px;padding:9px 14px;transform:rotate(-1deg)}
+.watch-clip:hover{transform:translateY(-2px) rotate(0deg)}
+.project-story{max-width:700px;font-size:16px;line-height:1.8;padding-bottom:36px}
+.project-story p{margin-bottom:22px}
+.project-story .project-story-lead{font:500 clamp(20px,2.4vw,25px)/1.5 Fredoka,system-ui,sans-serif;max-width:680px;margin-bottom:24px}
+.project-story .game-controls-note{font-size:12px;color:var(--muted);margin:-14px 0 28px}
+.project-story .project-fact{font-size:13px;margin:26px 0 8px;color:var(--muted)}
+.project-story .project-credit{font-size:13px;margin-top:0}
+.project-picker{border-top:1px dashed #c9ac85;padding-top:20px}
+.project-picker>summary{width:fit-content;cursor:pointer;font:500 14px Fredoka,system-ui,sans-serif;color:#66513b;padding:11px 15px;min-height:44px;background:#efe3cc;border:1px solid #d1b894;border-radius:4px 12px 12px 4px;box-shadow:2px 2px 0 #dfcaab}
+.project-picker>summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+.project-picker .project-index{margin-top:14px}
+.project-picker .index-group button{font-size:15px}
+@media(max-width:760px){
+  .preview{padding:0 22px 24px}
+  .work-toolbar{margin:0 -22px;padding:12px 18px;gap:10px;min-height:78px}
+  .work-toolbar .preview-label{font-size:14px;padding:6px 7px;white-space:normal}
+  .work-navigation{gap:12px}
+  .work-toolbar .autoplay{font-size:11px;max-width:66px;line-height:1.3;text-align:left}
+  .work-toolbar .preview-controls{gap:6px}
+  .work-toolbar .preview-controls span{min-width:44px;font-size:10px}
+  .preview-current{padding:30px 0 24px}
+  .preview-current h2{font-size:clamp(32px,8vw,44px)}
+  .project-story{font-size:15px;line-height:1.75;padding-bottom:28px}
+}
+@media(max-width:380px){.work-toolbar .preview-label{max-width:66px;line-height:1.15}.work-navigation{gap:8px}.work-toolbar{padding-inline:12px}}
+
+/* Give the crew a clear edge before the overlapping work-section button. */
+.project-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:22px}
+.project-actions .watch-clip{margin-top:0}
+.preview-sound{min-height:44px;padding:9px 12px;border:1px solid #bda689;border-radius:8px;background:#fbf3e2;color:#66513b;font:500 14px Fredoka,system-ui,sans-serif;cursor:pointer}
+.preview-sound[hidden]{display:none}
+.preview-sound:hover,.preview-sound[aria-pressed=true]{background:#e9eecb;color:#465b39}
+@media(max-width:760px){header{display:flex;min-height:70px;gap:12px}.site-nav{margin-left:auto}.site-nav a{padding:5px 10px}}
+main[data-view=work] .playground{margin-bottom:36px}
+main[data-view=work] .preview{margin-top:0}
+.danger-button{bottom:-48px}
+@media(max-width:760px){
+  main[data-view=work] .playground{margin-bottom:44px}
+  .danger-button{bottom:-56px}
+}

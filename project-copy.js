@@ -1,4 +1,9 @@
 export const projectCopy = {
+  wordometer: [
+    'A word-guessing game where meaning is your clue.',
+    'Created for the Zynga 2025 Hackathon, Word-O-Meter challenges you to uncover a hidden word in 25 guesses. An AI-powered meter shows how closely each guess relates to the target, with hints to help you find your way.',
+    'Play directly in your browser. The first launch downloads an AI model, so an internet connection is needed and loading may take a moment.',
+  ],
   dice: [
     'A fast-paced, push-your-luck twist on Words With Friends—and its first permanent PvP mode since Classic.',
     'Dice Challenge swaps traditional tiles for letter dice. Players roll and re-roll to chase stronger words, then place their dice on a specialized board with multipliers and bonus points for filling entire rows.',

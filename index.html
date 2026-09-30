@@ -10,7 +10,7 @@
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
-  <header><a class="wordmark" href="#work" aria-label="Joel home">joel</a><nav class="site-nav" aria-label="Explore"><a href="#work" aria-current="page">Work</a><a href="#about">About + contact</a></nav><button id="motion" class="motion" aria-pressed="false">Pause motion <span aria-hidden="true">Ⅱ</span></button></header>
+  <header><a class="wordmark" href="#work" aria-label="Joel home">joel</a><nav class="site-nav" aria-label="Explore"><a href="#work" aria-current="page">Work</a><a href="#about">About + contact</a></nav></header>
   <main id="work" data-view="work">
     <div class="intro"><div class="intro-work"><h1>come on <em>in!</em></h1><p class="subhead">The full portfolio is still under construction.</p></div><div class="intro-about" hidden></div></div>
     <section class="playground" aria-label="Chonkimals building Joel’s portfolio and showing project previews">
@@ -23,12 +23,12 @@
       <p class="sr-only" id="announcement" aria-live="polite"></p>
     </section>
     <section class="preview" aria-label="Project previews">
-      <div class="preview-masthead"><span class="preview-label">selected work</span><span class="preview-instruction">pick a project or let the deck play</span></div>
-      <div class="preview-current"><div class="preview-heading"><p id="project-group">Zynga Hackathon 2026</p><h2 id="project-title">Chonkimals</h2><button id="watch-clip" class="watch-clip" type="button" aria-haspopup="dialog" hidden><span aria-hidden="true">▶</span> Watch the clip</button></div><div class="preview-controls"><button id="previous-project" aria-label="Previous project">←</button><span id="project-number">01 / 08</span><button id="next-project" aria-label="Next project">→</button></div></div>
+      <div class="work-toolbar"><span class="preview-label">selected work</span><div class="work-navigation"><button id="autoplay" class="autoplay" aria-pressed="true"><span class="autoplay-icon" aria-hidden="true">Ⅱ</span> Pause autoplay</button><div class="preview-controls"><button id="previous-project" aria-label="Previous project">←</button><span id="project-number">01 / 09</span><button id="next-project" aria-label="Next project">→</button></div></div><div class="autoplay-track" aria-hidden="true"><span id="autoplay-progress"></span></div></div>
+      <div class="preview-current"><div class="preview-heading"><p id="project-group">Zynga Hackathon 2026</p><h2 id="project-title">Chonkimals</h2><div class="project-actions"><button id="watch-clip" class="watch-clip" type="button" aria-haspopup="dialog" hidden><span aria-hidden="true">▶</span> Watch the clip</button><button id="preview-sound" class="preview-sound" type="button" aria-label="Preview sound" aria-pressed="false" hidden>Unmute preview</button></div></div></div>
       <section id="chonkimals-details" class="project-story" aria-label="About Chonkimals" hidden>
         <p class="game-controls-note">Mobile controls preferred · Try full screen for more room to play.</p>
         <p class="project-story-lead">A cozy 3D summer camp sandbox built around a simple idea: everyone can join in, spectate, or just hang out.</p>
-        <p>Created for the Zynga 2026 Hackathon, Chonkimals imagines a shared, real-time social world at Camp Chonkton. Roam the campgrounds, ride the cliffside zipline, take a hang glider from the summit, or find your next game with fellow campers.</p>
+        <p>Chonkimals imagines a shared, real-time social world at Camp Chonkton. Roam the campgrounds, ride the cliffside zipline, take a hang glider from the summit, or find your next game with fellow campers.</p>
         <details>
           <summary>Explore what’s in camp</summary>
           <ul>
@@ -38,17 +38,17 @@
             <li><strong>Make camp your own:</strong> mock Camp Pass progression, Camp Care Package gacha, a cabin dressing room, and tent customization.</li>
           </ul>
         </details>
+        <p class="project-fact">Zynga 2026 Hackathon · Concept to submission in 3 days.</p>
         <p class="project-credit">Co-created with <a href="https://kabuto555.github.io/pages/game-design.html" target="_blank" rel="noopener noreferrer">Clarky Lee <span aria-hidden="true">↗</span></a>.</p>
       </section>
       <section id="project-details" class="project-story" aria-label="About this project" hidden></section>
-      <div class="autoplay-track" aria-hidden="true"><span id="autoplay-progress"></span></div>
-      <div class="index-heading"><span>pick a slide</span><button id="autoplay" class="autoplay" aria-pressed="true"><span class="autoplay-icon" aria-hidden="true">Ⅱ</span> Pause autoplay</button></div>
+      <details class="project-picker"><summary>Browse all 9 projects</summary>
       <div class="project-index" aria-label="Choose a project">
-        <div class="index-group"><p>01 / HACKATHON</p><button data-project="0" data-play><span>01</span>Chonkimals</button></div>
-        <div class="index-group"><p>02 / WORDS WITH FRIENDS</p><button data-project="1" data-video><span>02</span>Dice Challenge</button><button data-project="2" data-video><span>03</span>Letter Lock</button><button data-project="3" data-video><span>04</span>Gold Word</button><button data-project="4"><span>05</span>Bonus Pass</button></div>
-        <div class="index-group"><p>03 / MERGE DRAGONS</p><button data-project="5"><span>06</span>Dragon Breeding</button><button data-project="6"><span>07</span>FTUE &amp; Starter Quests</button><button data-project="7"><span>08</span>Dragon Book</button></div>
+        <div class="index-group"><p>01 / HACKATHON</p><button data-project="0" data-play><span>01</span>Chonkimals</button><button data-project="1" data-play><span>02</span>Word-O-Meter</button></div>
+        <div class="index-group"><p>02 / WORDS WITH FRIENDS</p><button data-project="2" data-video><span>03</span>Dice Challenge</button><button data-project="3" data-video><span>04</span>Letter Lock</button><button data-project="4" data-video><span>05</span>Gold Word</button><button data-project="5"><span>06</span>Bonus Pass</button></div>
+        <div class="index-group"><p>03 / MERGE DRAGONS</p><button data-project="6"><span>07</span>Dragon Breeding</button><button data-project="7"><span>08</span>FTUE &amp; Starter Quests</button><button data-project="8"><span>09</span>Dragon Book</button></div>
       </div>
-      <p class="preview-note">A closer look at the games and features I’ve helped make.</p>
+      </details>
     </section>
     <section class="about-panel" id="about" aria-labelledby="about-title" hidden>
       <div class="about-main"><h1 class="about-kicker" id="about-title">ABOUT ME</h1><p class="about-lead">A Product Designer crafting delightful and engaging user experiences—Currently @ <a href="https://www.zynga.com/" target="_blank" rel="noopener noreferrer">Zynga</a> / <a href="https://www.take2games.com/" target="_blank" rel="noopener noreferrer">Take Two</a>.</p></div>

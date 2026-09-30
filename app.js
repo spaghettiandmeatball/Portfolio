@@ -7,6 +7,7 @@ import { projectCopy } from './project-copy.js';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
+  { group: 'Zynga Hackathon 2025', title: 'Word-O-Meter', kind: 'wordometer', play: './play/word-o-meter/' },
   { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM', embed: 'https://www.youtube-nocookie.com/embed/Y0ORyzqeXgM?autoplay=1&playsinline=1&rel=0' },
   { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube-nocookie.com/embed/DIEdCnECGjg?autoplay=1&playsinline=1&rel=0' },
   { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', embed: 'https://www.instagram.com/reel/DdUcDmelR2F/embed/' },
@@ -37,7 +38,6 @@ const guestPokeLines = ['I just got here!', 'I was told this was a safe viewing 
 const propLines = { hole: ['This is an important hole.', 'The hole has excellent growth potential.'], shovel: ['This is my senior shovel.', 'I put it on my résumé.'], toolbox: ['The toolbox is mostly snacks.', 'Please return all borrowed snacks.'] };
 const propCounts = { hole: 0, shovel: 0, toolbox: 0 };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const motionButton = document.querySelector('#motion');
 const autoplayButton = document.querySelector('#autoplay');
 const autoplayProgress = document.querySelector('#autoplay-progress');
 const announcement = document.querySelector('#announcement');
@@ -50,6 +50,58 @@ const PROJECT_DURATION = 7;
 let speech, characters = [], audience = [], cart, cartScreen, elapsed = reduced.matches ? 7 : 0, selected = 0, showing = 0;
 let slideTexture, slideCanvas, slideContext, chonkimalsImage;
 const projectImages = new Map();
+const slideVideo = document.createElement('video');
+slideVideo.id = 'presentation-video';
+slideVideo.muted = true;
+slideVideo.defaultMuted = true;
+slideVideo.loop = true;
+slideVideo.playsInline = true;
+slideVideo.preload = 'metadata';
+slideVideo.hidden = true;
+slideVideo.setAttribute('aria-hidden', 'true');
+document.body.appendChild(slideVideo);
+const slideClips = { dice: './assets/videos/dice-challenge.mp4', letters: './assets/videos/letter-lock.mp4' };
+const previewSound = document.querySelector('#preview-sound');
+function updatePreviewSound() {
+  previewSound.textContent = slideVideo.muted ? 'Unmute preview' : 'Mute preview';
+  previewSound.setAttribute('aria-pressed', String(!slideVideo.muted));
+}
+previewSound.addEventListener('click', () => {
+  slideVideo.muted = !slideVideo.muted;
+  updatePreviewSound();
+  if (!paused && !document.hidden && !isProjectPlayerOpen()) {
+    slideVideo.play().catch(() => { slideVideo.muted = true; updatePreviewSound(); });
+  }
+});
+let slidePlaybackWanted = false, lastVideoTime = -1;
+slideVideo.addEventListener('loadeddata', drawSlide);
+function selectSlideVideo(project) {
+  slideVideo.pause();
+  slidePlaybackWanted = false;
+  lastVideoTime = -1;
+  const source = slideClips[project.kind];
+  slideVideo.muted = true;
+  previewSound.hidden = !source;
+  updatePreviewSound();
+  if (source) slideVideo.src = source;
+  else slideVideo.removeAttribute('src');
+  slideVideo.load();
+}
+function updateSlideVideo(active) {
+  const wanted = active && !!slideClips[projects[selected].kind];
+  if (wanted !== slidePlaybackWanted) {
+    slidePlaybackWanted = wanted;
+    if (wanted) slideVideo.play().catch(() => { /* Keep the static preview if autoplay is blocked. */ });
+    else slideVideo.pause();
+  }
+  if (wanted && slideVideo.readyState >= 2 && slideVideo.currentTime !== lastVideoTime) {
+    lastVideoTime = slideVideo.currentTime;
+    drawSlide();
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { slideVideo.pause(); slidePlaybackWanted = false; }
+});
 function getProjectImage(project) {
   if (!project.image) return null;
   if (!projectImages.has(project.image)) {
@@ -69,13 +121,7 @@ const projectButtons = [...document.querySelectorAll('[data-project]')];
 const watchClip = document.querySelector('#watch-clip');
 watchClip.addEventListener('click', () => { projectElapsed = 0; openProjectPlayer(projects[selected]); });
 
-function updateMotion() {
-  motionButton.innerHTML = `${paused ? 'Resume' : 'Pause'} motion <span aria-hidden="true">${paused ? '▷' : 'Ⅱ'}</span>`;
-  motionButton.setAttribute('aria-pressed', String(paused));
-}
-updateMotion();
-motionButton.addEventListener('click', () => { paused = !paused; updateMotion(); });
-reduced.addEventListener('change', e => { paused = e.matches; autoplay = !e.matches; if (e.matches) elapsed = Math.max(elapsed, 7); updateMotion(); updateAutoplay(); });
+reduced.addEventListener('change', e => { paused = e.matches; autoplay = !e.matches; if (e.matches) elapsed = Math.max(elapsed, 7); updateAutoplay(); });
 function updateAutoplay() {
   autoplayButton.innerHTML = `<span class="autoplay-icon" aria-hidden="true">${autoplay ? 'Ⅱ' : '▶'}</span> ${autoplay ? 'Pause autoplay' : 'Play autoplay'}`;
   autoplayButton.setAttribute('aria-pressed', String(autoplay));
@@ -93,11 +139,12 @@ function showProject(index, announce = false) {
   }
   selected = next;
   const project = projects[selected];
+  selectSlideVideo(project);
   document.querySelector('#project-group').textContent = project.group;
   document.querySelector('#project-title').textContent = project.title;
   watchClip.hidden = !(project.video || project.play);
   watchClip.innerHTML = `<span aria-hidden="true">▶</span> ${project.play ? 'Play Game' : 'Watch the clip'}`;
-  document.querySelector('#chonkimals-details').hidden = !project.play;
+  document.querySelector('#chonkimals-details').hidden = project.kind !== 'chonkimals';
   const story = document.querySelector('#project-details');
   const paragraphs = projectCopy[project.kind] || [];
   story.hidden = !paragraphs.length;
@@ -128,6 +175,14 @@ document.querySelectorAll('.project-story').forEach(story => {
 function drawSlide() {
   if (!slideContext) return;
   const c = slideContext, p = projects[selected], w = slideCanvas.width, h = slideCanvas.height;
+  if (slideClips[p.kind] && slideVideo.readyState >= 2 && slideVideo.videoWidth) {
+    const scale = Math.min(w / slideVideo.videoWidth, h / slideVideo.videoHeight);
+    const width = slideVideo.videoWidth * scale, height = slideVideo.videoHeight * scale;
+    c.fillStyle = '#171411'; c.fillRect(0, 0, w, h);
+    c.drawImage(slideVideo, (w - width) / 2, (h - height) / 2, width, height);
+    if (slideTexture) slideTexture.needsUpdate = true;
+    return;
+  }
   const merge = p.group === 'Merge Dragons';
   c.fillStyle = merge ? '#e7ead2' : '#f1e7cf';
   c.fillRect(0, 0, w, h);
@@ -145,18 +200,18 @@ function drawSlide() {
     c.strokeRect(22, 22, w - 44, h - 44); c.setLineDash([]);
     c.fillStyle = ink; c.textAlign = 'left';
     c.font = '600 39px Fredoka, sans-serif'; c.fillText(p.group.toLowerCase(), 67, 110);
-    c.font = '600 26px Fredoka, sans-serif'; c.textAlign = 'right'; c.fillText(`${String(selected + 1).padStart(2, '0')} / 08`, w - 68, 108);
+    c.font = '600 26px Fredoka, sans-serif'; c.textAlign = 'right'; c.fillText(`${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`, w - 68, 108);
     const words = p.title.toLowerCase().split(' '), split = p.title.length > 14;
     const titleLines = split ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [p.title.toLowerCase()];
     const titleSize = titleLines.some(line => line.length > 13) ? 108 : 135;
     c.font = `600 ${titleSize}px Fredoka, sans-serif`;
     c.textAlign = 'center';
-    const startY = titleLines.length === 1 ? 365 : 300;
-    titleLines.forEach((line, i) => c.fillText(line, w / 2, startY + i * 125, w - 130));
-    if (p.video) drawVideoCue(c, w / 2, 510);
+    const startY = titleLines.length === 1 ? 330 : 270;
+    titleLines.forEach((line, i) => c.fillText(line, w / 2, startY + i * 110, w - 130));
+    if (p.video || p.play) drawVideoCue(c, w / 2, 490, p.play ? 'PLAY GAME' : 'WATCH THE CLIP');
     else {
-      c.beginPath(); c.moveTo(285, 492); c.bezierCurveTo(440, 522, 600, 476, 739, 500); c.strokeStyle = accent; c.lineWidth = 10; c.lineCap = 'round'; c.stroke();
-      c.font = '500 26px Fredoka, sans-serif'; c.fillStyle = accent; c.fillText('a little look at joel’s work', w / 2, 572);
+      c.beginPath(); c.moveTo(285, 442); c.bezierCurveTo(440, 472, 600, 426, 739, 450); c.strokeStyle = accent; c.lineWidth = 10; c.lineCap = 'round'; c.stroke();
+      c.font = '500 26px Fredoka, sans-serif'; c.fillStyle = accent; c.fillText('a little look at joel’s work', w / 2, 522);
     }
   }
   if (slideTexture) slideTexture.needsUpdate = true;
@@ -327,15 +382,17 @@ function makeTrapHole(scene) {
 }
 
 function makeCart(scene) {
-  slideCanvas = document.createElement('canvas'); slideCanvas.width = 1024; slideCanvas.height = 640; slideContext = slideCanvas.getContext('2d');
+  slideCanvas = document.createElement('canvas'); slideCanvas.width = 1024; slideCanvas.height = 576; slideContext = slideCanvas.getContext('2d');
   slideTexture = new THREE.CanvasTexture(slideCanvas); slideTexture.colorSpace = THREE.SRGBColorSpace; drawSlide();
   const frame = new THREE.MeshStandardMaterial({ color: 0x574337, roughness: .7 });
   const edge = new THREE.MeshStandardMaterial({ color: 0xd59c52, roughness: .65 });
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x37302a, roughness: .88 });
   const group = new THREE.Group(); group.position.set(12, 0, -4.4); scene.add(group);
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(9.4, 5.7, .25), frame); panel.position.y = 4.45; panel.castShadow = true; group.add(panel);
-  const border = new THREE.Mesh(new THREE.BoxGeometry(9.16, 5.46, .03), edge); border.position.set(0, 4.45, .145); group.add(border);
-  cartScreen = new THREE.Mesh(new THREE.PlaneGeometry(8.96, 5.28), new THREE.MeshBasicMaterial({ map: slideTexture, toneMapped: false })); cartScreen.position.set(0, 4.45, .165); group.add(cartScreen);
+  const screenWidth = 8.96, screenHeight = screenWidth * 9 / 16;
+  const screenY = 1.81 + screenHeight / 2;
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(9.4, screenHeight + .42, .25), frame); panel.position.y = screenY; panel.castShadow = true; group.add(panel);
+  const border = new THREE.Mesh(new THREE.BoxGeometry(9.16, screenHeight + .18, .03), edge); border.position.set(0, screenY, .145); group.add(border);
+  cartScreen = new THREE.Mesh(new THREE.PlaneGeometry(screenWidth, screenHeight), new THREE.MeshBasicMaterial({ map: slideTexture, toneMapped: false })); cartScreen.position.set(0, screenY, .165); group.add(cartScreen);
   const stand = new THREE.Mesh(new THREE.BoxGeometry(.18, 1.55, .18), frame); stand.position.y = .9; stand.castShadow = true; group.add(stand);
   const base = new THREE.Mesh(new THREE.BoxGeometry(8.3, .15, .28), frame); base.position.y = .14; base.castShadow = true; group.add(base);
   for (const x of [-3.86, 3.86]) { const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.24, .24, .14, 20), wheelMat); wheel.rotation.x = Math.PI / 2; wheel.position.set(x, .21, .23); group.add(wheel); }
@@ -793,6 +850,7 @@ async function init() {
     if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
     if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
+    updateSlideVideo(view === 'work' && !viewTransition && !paused && !document.hidden && !isProjectPlayerOpen());
     speech.update(paused ? 0 : dt, camera, (key, out) => { if (key === 'joel') { if (!joel || !joel.root.visible) return false; out.set(joel.root.position.x, JOEL_HEIGHT + .3, joel.root.position.z); return true; } if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
     renderer.render(scene, camera);
   });

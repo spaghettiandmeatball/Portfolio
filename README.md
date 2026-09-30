@@ -11,9 +11,11 @@ Interactive 3D welcoming committee featuring real-time animation, interactive sp
 - Respects `prefers-reduced-motion` settings.
 
 ## Interaction
-Tap a character or its label to trigger a hop and speech bubble. The "Pause motion" control pauses animations and message rotation.
+Tap a character or its label to trigger a hop and speech bubble. Animations respect the device's reduced-motion preference. Dice Challenge and Letter Lock have looping presentation videos with an Unmute preview / Mute preview control. Each new slide starts muted.
 
 ## Project players
+
+Word-O-Meter (Zynga Hackathon 2025) runs from `play/word-o-meter/index.html`. It loads Transformers.js and a word-similarity model from external hosts on first use. The portfolio copy adapts the phone layout to its container, hides development controls, and reports module-loading failures through the loading screen. The original supplied file is unchanged.
 
 Chonkimals has a Full screen toggle with a viewport-filling fallback when native fullscreen is unavailable. Exit full screen resizes the existing game without restarting it. The expanded layout keeps close controls visible and respects phone safe areas.
 
