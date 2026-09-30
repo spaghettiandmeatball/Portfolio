@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f7f3e9">
   <title>Joel — Product Designer</title>
   <meta name="description" content="Joel is a product designer crafting delightful and engaging user experiences. Explore selected work and connect on LinkedIn.">
@@ -24,13 +24,29 @@
     </section>
     <section class="preview" aria-label="Project previews">
       <div class="preview-masthead"><span class="preview-label">selected work</span><span class="preview-instruction">pick a project or let the deck play</span></div>
-      <div class="preview-current"><div class="preview-heading"><p id="project-group">Zynga Hackathon 2026</p><h2 id="project-title">Chonkimals</h2><a id="watch-clip" class="watch-clip" target="_blank" rel="noopener noreferrer" hidden><span aria-hidden="true">▶</span> Watch the clip ↗</a></div><div class="preview-controls"><button id="previous-project" aria-label="Previous project">←</button><span id="project-number">01 / 08</span><button id="next-project" aria-label="Next project">→</button></div></div>
+      <div class="preview-current"><div class="preview-heading"><p id="project-group">Zynga Hackathon 2026</p><h2 id="project-title">Chonkimals</h2><button id="watch-clip" class="watch-clip" type="button" aria-haspopup="dialog" hidden><span aria-hidden="true">▶</span> Watch the clip</button></div><div class="preview-controls"><button id="previous-project" aria-label="Previous project">←</button><span id="project-number">01 / 08</span><button id="next-project" aria-label="Next project">→</button></div></div>
+      <section id="chonkimals-details" class="project-story" aria-label="About Chonkimals" hidden>
+        <p class="game-controls-note">Mobile controls preferred · Try full screen for more room to play.</p>
+        <p class="project-story-lead">A cozy 3D summer camp sandbox built around a simple idea: everyone can join in, spectate, or just hang out.</p>
+        <p>Created for the Zynga 2026 Hackathon, Chonkimals imagines a shared, real-time social world at Camp Chonkton. Roam the campgrounds, ride the cliffside zipline, take a hang glider from the summit, or find your next game with fellow campers.</p>
+        <details>
+          <summary>Explore what’s in camp</summary>
+          <ul>
+            <li><strong>Party games:</strong> Sumo, Dodgeball, and River Log Race.</li>
+            <li><strong>Cooperative play:</strong> Lunch Delivery, a PvE event.</li>
+            <li><strong>Tabletop classics:</strong> Words With Friends and Dice With Friends.</li>
+            <li><strong>Make camp your own:</strong> mock Camp Pass progression, Camp Care Package gacha, a cabin dressing room, and tent customization.</li>
+          </ul>
+        </details>
+        <p class="project-credit">Co-created with <a href="https://kabuto555.github.io/pages/game-design.html" target="_blank" rel="noopener noreferrer">Clarky Lee <span aria-hidden="true">↗</span></a>.</p>
+      </section>
+      <section id="project-details" class="project-story" aria-label="About this project" hidden></section>
       <div class="autoplay-track" aria-hidden="true"><span id="autoplay-progress"></span></div>
       <div class="index-heading"><span>pick a slide</span><button id="autoplay" class="autoplay" aria-pressed="true"><span class="autoplay-icon" aria-hidden="true">Ⅱ</span> Pause autoplay</button></div>
       <div class="project-index" aria-label="Choose a project">
-        <div class="index-group"><p>01 / HACKATHON</p><button data-project="0"><span>01</span>Chonkimals</button></div>
+        <div class="index-group"><p>01 / HACKATHON</p><button data-project="0" data-play><span>01</span>Chonkimals</button></div>
         <div class="index-group"><p>02 / WORDS WITH FRIENDS</p><button data-project="1" data-video><span>02</span>Dice Challenge</button><button data-project="2" data-video><span>03</span>Letter Lock</button><button data-project="3" data-video><span>04</span>Gold Word</button><button data-project="4"><span>05</span>Bonus Pass</button></div>
-        <div class="index-group"><p>03 / MERGE DRAGONS</p><button data-project="5"><span>06</span>Dragon Breeding</button><button data-project="6"><span>07</span>FTUE Revamp</button><button data-project="7"><span>08</span>Dragon Book</button></div>
+        <div class="index-group"><p>03 / MERGE DRAGONS</p><button data-project="5"><span>06</span>Dragon Breeding</button><button data-project="6"><span>07</span>FTUE &amp; Starter Quests</button><button data-project="7"><span>08</span>Dragon Book</button></div>
       </div>
       <p class="preview-note">A closer look at the games and features I’ve helped make.</p>
     </section>
@@ -39,6 +55,11 @@
       <div class="about-side"><div class="contact-card"><span class="contact-kicker">SAY HELLO</span><h2>Let’s connect.</h2><div class="contact-actions"><a class="contact-link" href="mailto:joelxdesjardins@gmail.com">Email me <span aria-hidden="true">↗</span></a><a class="contact-link" href="https://www.linkedin.com/in/joelxdesjardins/" target="_blank" rel="noopener noreferrer">Connect on LinkedIn <span aria-hidden="true">↗</span></a></div></div></div>
     </section>
   </main>
+  <dialog id="project-player" class="project-player" aria-labelledby="player-title">
+    <div class="player-header"><h2 id="player-title">Project video</h2><div class="player-actions"><button class="player-fullscreen" type="button" aria-pressed="false" hidden>Full screen</button><button class="player-close" type="button" autofocus aria-label="Close project player">Close ×</button></div></div>
+    <div class="player-content"></div>
+    <p class="player-help">Video not loading? <a id="player-source" target="_blank" rel="noopener noreferrer">Open the original clip ↗</a></p>
+  </dialog>
   <footer><span>Made by Joel.</span></footer>
   <noscript><p class="no-js">Joel’s full portfolio is still under construction. Enable JavaScript to explore this preview.</p></noscript>
   <script type="module" src="./app.js"></script>

@@ -2,15 +2,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { createCharacter } from './chonkimals/player.js';
 import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
+import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js';
+import { projectCopy } from './project-copy.js';
 
 const projects = [
-  { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals' },
-  { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM' },
-  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg' },
-  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/' },
+  { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
+  { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM', embed: 'https://www.youtube-nocookie.com/embed/Y0ORyzqeXgM?autoplay=1&playsinline=1&rel=0' },
+  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube-nocookie.com/embed/DIEdCnECGjg?autoplay=1&playsinline=1&rel=0' },
+  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', embed: 'https://www.instagram.com/reel/DdUcDmelR2F/embed/' },
   { group: 'Words With Friends', title: 'Bonus Pass', kind: 'pass' },
   { group: 'Merge Dragons', title: 'Dragon Breeding', kind: 'breeding', image: 'project-dragon-breeding.png' },
-  { group: 'Merge Dragons', title: 'FTUE Revamp', kind: 'ftue', image: 'project-ftue.png' },
+  { group: 'Merge Dragons', title: 'FTUE & Starter Quests', kind: 'ftue', image: 'project-ftue.png' },
   { group: 'Merge Dragons', title: 'Dragon Book', kind: 'book', image: 'project-dragon-book.png' },
 ];
 const lines = [
@@ -65,7 +67,7 @@ shot.onload = () => { chonkimalsImage = shot; drawSlide(); };
 document.fonts.load('600 108px Fredoka').then(drawSlide);
 const projectButtons = [...document.querySelectorAll('[data-project]')];
 const watchClip = document.querySelector('#watch-clip');
-watchClip.addEventListener('click', () => { projectElapsed = 0; });
+watchClip.addEventListener('click', () => { projectElapsed = 0; openProjectPlayer(projects[selected]); });
 
 function updateMotion() {
   motionButton.innerHTML = `${paused ? 'Resume' : 'Pause'} motion <span aria-hidden="true">${paused ? '▷' : 'Ⅱ'}</span>`;
@@ -93,8 +95,20 @@ function showProject(index, announce = false) {
   const project = projects[selected];
   document.querySelector('#project-group').textContent = project.group;
   document.querySelector('#project-title').textContent = project.title;
-  watchClip.hidden = !project.video;
-  if (project.video) watchClip.href = project.video;
+  watchClip.hidden = !(project.video || project.play);
+  watchClip.innerHTML = `<span aria-hidden="true">▶</span> ${project.play ? 'Play Game' : 'Watch the clip'}`;
+  document.querySelector('#chonkimals-details').hidden = !project.play;
+  const story = document.querySelector('#project-details');
+  const paragraphs = projectCopy[project.kind] || [];
+  story.hidden = !paragraphs.length;
+  story.setAttribute('aria-label', `About ${project.title}`);
+  story.replaceChildren(...paragraphs.map((text, index) => {
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    if (index === 0) paragraph.className = 'project-story-lead';
+    return paragraph;
+  }));
+  if (announce) { autoplay = false; updateAutoplay(); }
   document.querySelector('#project-number').textContent = `${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
   projectButtons.forEach((button, i) => button.setAttribute('aria-current', String(i === selected)));
   drawSlide();
@@ -104,6 +118,12 @@ document.querySelector('#previous-project').addEventListener('click', () => show
 document.querySelector('#next-project').addEventListener('click', () => showProject(selected + 1, true));
 projectButtons.forEach((button, i) => button.addEventListener('click', () => showProject(i, true)));
 showProject(0);
+function pauseForProjectStory() { autoplay = false; updateAutoplay(); }
+document.querySelectorAll('.project-story').forEach(story => {
+  story.addEventListener('pointerenter', pauseForProjectStory);
+  story.addEventListener('focusin', pauseForProjectStory);
+  story.addEventListener('touchstart', pauseForProjectStory, { passive: true });
+});
 
 function drawSlide() {
   if (!slideContext) return;
@@ -118,7 +138,7 @@ function drawSlide() {
     c.fillStyle = 'rgba(39,34,25,.77)'; c.fillRect(0, h - 133, w, 133);
     c.textAlign = 'left'; c.fillStyle = '#fff8e9'; c.font = '600 28px Fredoka, sans-serif'; c.fillText(p.group.toLowerCase(), 43, h - 101);
     c.font = '600 70px Fredoka, sans-serif'; c.fillText(p.title.toLowerCase(), 40, h - 24, w - 80);
-    if (p.video) drawVideoCue(c, w / 2, 257);
+    if (p.video || p.play) drawVideoCue(c, w / 2, 257, p.play ? 'PLAY GAME' : 'WATCH THE CLIP');
   } else {
     const ink = merge ? '#355646' : '#49362c', accent = merge ? '#77945d' : '#b87149';
     c.strokeStyle = accent; c.lineWidth = 4; c.setLineDash([7, 12]);
@@ -142,7 +162,7 @@ function drawSlide() {
   if (slideTexture) slideTexture.needsUpdate = true;
 }
 
-function drawVideoCue(c, x, y) {
+function drawVideoCue(c, x, y, label = 'WATCH THE CLIP') {
   c.save();
   c.shadowColor = 'rgba(34,24,17,.35)'; c.shadowBlur = 18; c.shadowOffsetY = 8;
   c.fillStyle = '#fff7de'; c.strokeStyle = '#4b3828'; c.lineWidth = 6;
@@ -151,7 +171,7 @@ function drawVideoCue(c, x, y) {
   c.fillStyle = '#f2ce5b'; c.beginPath(); c.arc(x - 170, y, 38, 0, Math.PI * 2); c.fill();
   c.strokeStyle = '#4b3828'; c.lineWidth = 4; c.stroke();
   c.fillStyle = '#4b3828'; c.beginPath(); c.moveTo(x - 179, y - 18); c.lineTo(x - 179, y + 18); c.lineTo(x - 147, y); c.closePath(); c.fill();
-  c.fillStyle = '#4b3828'; c.textAlign = 'left'; c.font = '600 39px Fredoka, sans-serif'; c.fillText('WATCH THE CLIP', x - 112, y + 14);
+  c.fillStyle = '#4b3828'; c.textAlign = 'left'; c.font = '600 39px Fredoka, sans-serif'; c.fillText(label, x - 112, y + 14, 325);
   c.restore();
 }
 
@@ -242,14 +262,15 @@ function makeWorksite(scene) {
   const pulses = { shovel: -Infinity, toolbox: -Infinity };
   let span = 12;
   return {
-    resize(mobile, compact) {
-      span = mobile ? 8 : compact ? 10.4 : 12; posts[0].position.x = -span / 2; posts[1].position.x = span / 2;
-      cones[0].position.x = mobile ? -3.8 : compact ? -4.8 : -5.5; cones[1].position.x = -cones[0].position.x;
-      const spread = mobile ? 2.5 : compact ? 3.25 : 3.85;
+    resize(layout, wide) {
+      span = THREE.MathUtils.lerp(8, THREE.MathUtils.lerp(10.4, 12, wide), layout);
+      posts[0].position.x = -span / 2; posts[1].position.x = span / 2;
+      cones[0].position.x = -THREE.MathUtils.lerp(3.8, THREE.MathUtils.lerp(4.8, 5.5, wide), layout); cones[1].position.x = -cones[0].position.x;
+      const spread = THREE.MathUtils.lerp(2.5, THREE.MathUtils.lerp(3.25, 3.85, wide), layout);
       holes[0].position.x = -spread; holes[1].position.x = spread;
-      holes.forEach(hole => { hole.position.z = mobile ? 2.45 : 1.55; });
+      holes.forEach(hole => { hole.position.z = THREE.MathUtils.lerp(2.45, 1.55, layout); });
       shovel.position.x = -spread - .4; toolbox.position.x = spread + .5;
-      shovel.position.z = mobile ? 2.25 : 1.45; toolbox.position.z = mobile ? 2.6 : 1.7;
+      shovel.position.z = THREE.MathUtils.lerp(2.25, 1.45, layout); toolbox.position.z = THREE.MathUtils.lerp(2.6, 1.7, layout);
     },
     hit(raycaster) {
       if (holes.some(hole => raycaster.intersectObject(hole, true).length)) return 'hole';
@@ -293,13 +314,13 @@ function makeTrapHole(scene) {
     clod.scale.y = .45; clod.position.set(Math.cos(angle) * 2.97, .035, Math.sin(angle) * 2.08); group.add(clod);
   }
   return {
-    update(age, mobile) {
+    update(age, layout) {
       const opening = Math.min(1, Math.max(0, age / .6));
       const closing = Math.min(1, Math.max(0, (12.2 - age) / .7));
       const size = Math.max(0, Math.min(opening, closing));
       group.visible = size > .01;
       group.scale.setScalar(size);
-      group.position.z = mobile ? 2.1 : 1.45;
+      group.position.z = THREE.MathUtils.lerp(2.1, 1.45, layout);
     },
     hide() { group.visible = false; }
   };
@@ -323,6 +344,8 @@ function makeCart(scene) {
 
 async function init() {
   const host = document.querySelector('#stage');
+  const layoutMix = () => THREE.MathUtils.smoothstep(host.clientWidth, 540, 860);
+  const wideMix = () => THREE.MathUtils.smoothstep(host.clientWidth, 980, 1200);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(29, 1, .1, 60);
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -391,7 +414,7 @@ async function init() {
   const CAMERA_TRAVEL = 16;
   let view = 'work', viewTransition = null, sceneProgress = 0;
   const hatGroundPosition = index => new THREE.Vector3(
-    (host.clientWidth < 900 ? 3.1 : 4.4) * (index === 0 ? -1 : 1), .12, host.clientWidth < 900 ? 3.15 : 2.35
+    THREE.MathUtils.lerp(3.1, 4.4, layoutMix()) * (index === 0 ? -1 : 1), .12, THREE.MathUtils.lerp(3.15, 2.35, layoutMix())
   );
   const hatGroundRotation = index => new THREE.Quaternion().setFromEuler(
     new THREE.Euler(0, index === 0 ? -.45 : .55, index === 0 ? -.24 : .27)
@@ -414,9 +437,9 @@ async function init() {
   function setSceneProgress(progress) {
     sceneProgress = progress;
     playground.style.setProperty('--scene-progress', progress.toFixed(4));
-    const isMobile = host.clientWidth < 900, pan = progress * CAMERA_TRAVEL;
-    camera.position.set(pan, isMobile ? 4.4 : 5.0, isMobile ? 20.8 : 14.5);
-    camera.lookAt(pan, isMobile ? 1.6 : 3.2, 0);
+    const layout = layoutMix(), pan = progress * CAMERA_TRAVEL;
+    camera.position.set(pan, THREE.MathUtils.lerp(4.4, 5.0, layout), THREE.MathUtils.lerp(20.8, 14.5, layout));
+    camera.lookAt(pan, THREE.MathUtils.lerp(1.6, 3.2, layout), 0);
   }
   function applyView(next) {
     const previous = view;
@@ -511,11 +534,12 @@ async function init() {
   });
   document.querySelector('#loading').hidden = true; dangerButton.hidden = false;
   if (location.hash === '#about') { elapsed = Math.max(elapsed, 7); applyView('about'); window.scrollTo(0, 0); }
-  let mobile = false, compact = false;
+  let layout = layoutMix(), wide = wideMix();
   function resize() {
-    const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; mobile = w < 900; compact = w < 1100;
-    cart.scale.setScalar(mobile ? .86 : 1);
-    camera.updateProjectionMatrix(); setSceneProgress(sceneProgress); worksite.resize(mobile, compact);
+    const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h;
+    layout = layoutMix(); wide = wideMix();
+    cart.scale.setScalar(THREE.MathUtils.lerp(.86, 1, layout));
+    camera.updateProjectionMatrix(); setSceneProgress(sceneProgress); worksite.resize(layout, wide);
   }
   new ResizeObserver(resize).observe(host); resize();
   if (view === 'work') say('0', lines[0][0]);
@@ -523,7 +547,7 @@ async function init() {
   function hit(event) { const r = renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX - r.left) / r.width * 2 - 1, -(event.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(pointer, camera); const main = characters.findIndex(c => raycaster.intersectObject(c.root, true).length); if (main >= 0) return { type: 'main', index: main }; const guest = audience.findIndex(c => raycaster.intersectObject(c.root, true).length); if (guest >= 0) return { type: 'guest', index: guest }; if (view === 'about' && joel && raycaster.intersectObject(joel.root, true).length) return { type: 'joel' }; if (view !== 'work' || viewTransition) return null; const prop = worksite.hit(raycaster); if (prop) return { type: 'prop', name: prop }; if (cartScreen && raycaster.intersectObject(cartScreen).length) return { type: 'screen' }; return null; }
   function react(target, announce = false) {
     if (holeEvent.active) return;
-    if (!target) return; if (target.type === 'screen') { if (announce && projects[selected].video) watchClip.click(); else if (announce) showProject(selected + 1, true); return; }
+    if (!target) return; if (target.type === 'screen') { if (announce && (projects[selected].video || projects[selected].play)) watchClip.click(); else if (announce) showProject(selected + 1, true); return; }
     const quietAbout = view === 'about' && !viewTransition;
     if (target.type === 'joel') {
       const now = performance.now(); if (now - (announce ? joel.lastClick : joel.lastHover) < (announce ? 450 : 1800)) return;
@@ -591,16 +615,16 @@ async function init() {
     }
     if (mishap.type && mishapAge > 3.2) mishap.type = null;
     const move = Math.min(1, Math.max(0, (elapsed - .4) / 3.4)); const eased = 1 - (1 - move) ** 3;
-    cart.position.x = (mobile ? 8 : 12) * (1 - eased); cart.rotation.y = Math.sin(Math.PI * move) * -.045;
+    cart.position.x = THREE.MathUtils.lerp(8, 12, layout) * (1 - eased); cart.rotation.y = Math.sin(Math.PI * move) * -.045;
     slideWobble = paused ? 0 : Math.max(0, slideWobble - dt * 2.6);
     cart.rotation.z = Math.sin((1 - slideWobble) * Math.PI * 3) * slideWobble * .022;
     const slideAge = (performance.now() - slideCueAt) / 1000;
     const slidePulse = !paused && view === 'work' && !viewTransition && slideAge >= 0 && slideAge < 1.3 ? Math.sin(Math.PI * slideAge / 1.3) : 0;
     characters.forEach((c, i) => {
-      const workHome = mobile ? [-3.5, 2.35, 3.55][i] : compact ? [-4.8, 3, 4.8][i] : [-5.45, 3.25, 5.45][i];
-      const aboutHome = mobile ? [-2.65, 0, 2.65][i] : [-4.35, 0, 4.35][i];
+      const workHome = THREE.MathUtils.lerp([-3.5, 2.35, 3.55][i], THREE.MathUtils.lerp([-4.8, 3, 4.8][i], [-5.45, 3.25, 5.45][i], wide), layout);
+      const aboutHome = THREE.MathUtils.lerp([-2.65, 0, 2.65][i], [-4.35, 0, 4.35][i], layout);
       const home = THREE.MathUtils.lerp(workHome, aboutHome, sceneProgress);
-      if (i === 1) c.root.position.x = home + (mobile ? 6 : 9) * (1 - eased); else c.root.position.x = home;
+      if (i === 1) c.root.position.x = home + THREE.MathUtils.lerp(6, 9, layout) * (1 - eased); else c.root.position.x = home;
       c.root.position.x += sceneProgress * CAMERA_TRAVEL;
       c.root.position.x += runOffset;
       c.root.position.z = i === 1 ? -.2 : -.65;
@@ -661,8 +685,8 @@ async function init() {
     });
     audience.forEach((c, i) => {
       const start = 2.8 + i * .65, progress = Math.min(1, Math.max(0, (elapsed - start) / 2.1)), ease = 1 - (1 - progress) ** 3;
-      const home = (i - 1) * (mobile ? 1.15 : 1.5);
-      c.root.position.set(home + (i % 2 ? 1 : -1) * (mobile ? 5 : 9) * (1 - ease) + sceneProgress * CAMERA_TRAVEL + runOffset, Math.sin(elapsed * 3 + i) * .025, mobile ? 2.7 : 1.35);
+      const home = (i - 1) * THREE.MathUtils.lerp(1.15, 1.5, layout);
+      c.root.position.set(home + (i % 2 ? 1 : -1) * THREE.MathUtils.lerp(5, 9, layout) * (1 - ease) + sceneProgress * CAMERA_TRAVEL + runOffset, Math.sin(elapsed * 3 + i) * .025, THREE.MathUtils.lerp(2.7, 1.35, layout));
       const turn = Math.min(1, Math.max(0, (elapsed - start - 1.25) / 1.45));
       c.root.rotation.y = viewTransition ? viewTransition.to === 'about' ? Math.PI / 2 : -Math.PI / 2 : view === 'about' ? [-.15, 0, .15][i] : [2.45, Math.PI, 3.82][i] * turn + Math.sin(elapsed * .65 + i) * .07;
       c.root.rotation.z = c.reaction < 1 ? (i % 2 ? 1 : -1) * Math.sin(Math.PI * c.reaction) ** 2 * .52 : 0;
@@ -688,15 +712,15 @@ async function init() {
       }
     });
     if (joel) {
-      joel.root.position.set(CAMERA_TRAVEL + (mobile ? -1.65 : -2.15), 0, -.65);
+      joel.root.position.set(CAMERA_TRAVEL + THREE.MathUtils.lerp(-1.65, -2.15, layout), 0, -.65);
       joel.root.rotation.y = -.12;
       if (!paused && (view === 'about' || viewTransition)) joel.mixer.update(dt);
     }
     if (holeEvent.active) {
       const age = (performance.now() - holeEvent.started) / 1000;
-      trapHole.update(age, mobile);
+      trapHole.update(age, layout);
       const pullIn = (c, index) => {
-        const delay = index * .12, centerZ = mobile ? 2.1 : 1.45;
+        const delay = index * .12, centerZ = THREE.MathUtils.lerp(2.1, 1.45, layout);
         const fall = Math.min(1, Math.max(0, (age - .45 - delay) / 1.08));
         const rise = Math.min(1, Math.max(0, (age - 10 - delay) / 1.05));
         if (age < 10 + delay && fall >= 1) { c.root.visible = false; return; }
@@ -767,7 +791,7 @@ async function init() {
       c.dust.update(viewTransition.to === 'about' ? dustAge : -1, hatGroundPosition(index));
     });
     if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
-    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
+    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
     speech.update(paused ? 0 : dt, camera, (key, out) => { if (key === 'joel') { if (!joel || !joel.root.visible) return false; out.set(joel.root.position.x, JOEL_HEIGHT + .3, joel.root.position.z); return true; } if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
     renderer.render(scene, camera);

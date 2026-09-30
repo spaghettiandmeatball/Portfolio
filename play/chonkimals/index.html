@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Play Chonkimals</title>
+  <style>
+    @font-face{font-family:Fredoka;font-style:normal;font-weight:300 700;font-display:swap;src:url('./assets/fredoka.woff2') format('woff2')}
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body,#game{width:100%;height:100%;overflow:hidden;background:#fff;font-family:Fredoka,system-ui,sans-serif}
+    #load-status{position:fixed;inset:0;display:grid;place-content:center;text-align:center;padding:24px;background:#f4eddd;color:#493525;z-index:10000}
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <p id="load-status" role="status">Heading to camp…</p>
+  <script type="module">
+    const status = document.querySelector('#load-status');
+    try {
+      window.THREE = await import('./three.module.js');
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = './game.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+      status.remove();
+    } catch {
+      status.textContent = 'Camp couldn’t load. Please close the game and try again.';
+    }
+  </script>
+</body>
+</html>

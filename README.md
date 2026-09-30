@@ -12,3 +12,12 @@ Interactive 3D welcoming committee featuring real-time animation, interactive sp
 
 ## Interaction
 Tap a character or its label to trigger a hop and speech bubble. The "Pause motion" control pauses animations and message rotation.
+
+## Project players
+
+Chonkimals has a Full screen toggle with a viewport-filling fallback when native fullscreen is unavailable. Exit full screen resizes the existing game without restarting it. The expanded layout keeps close controls visible and respects phone safe areas.
+
+Project clips open in an accessible dialog; closing it unloads the player and stops playback. The carousel holds its current slide while the dialog is open. YouTube and Instagram clips require the provider to permit embedding; an original-clip link is available if playback is blocked.
+
+Chonkimals opens in the same dialog and loads only on demand. `play/chonkimals/` contains the supplied compiled game, its runtime assets, and Three.js 0.170.0. The standalone entry point uses relative URLs so it also works on GitHub Pages under a project path. To update the game, replace `game.js` and `assets/` from a new export; keep the portfolio's standalone `index.html`. Closing the game unloads it; persistent progress follows the supplied game's own save behavior.
+`play/chonkimals/game.js` has one export compatibility adjustment: `loadClip` loads the included individual audio files because the supplied export omits its combined sound pack.
