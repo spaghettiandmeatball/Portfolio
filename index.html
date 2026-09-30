@@ -3,26 +3,27 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f3e9">
-  <title>Joel — Be back soon</title>
-  <meta name="description" content="Joel’s new portfolio is on its way. His very qualified Chonkimals are holding down the fort.">
+  <title>Joel — Product Designer</title>
+  <meta name="description" content="Joel is a product designer crafting delightful and engaging user experiences. Explore selected work and connect on LinkedIn.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b84026'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-family='Georgia' font-size='49' fill='%23f7f3e9'%3Ej%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="./style.css">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body>
-  <header><a class="wordmark" href="./" aria-label="Joel home">joel</a><span class="status">tiny crew, big job</span><button id="motion" class="motion" aria-pressed="false">Pause motion <span aria-hidden="true">Ⅱ</span></button></header>
-  <main>
-    <div class="intro"><h1>be back <em>soon!</em></h1><p class="subhead">Joel’s portfolio is under construction.</p></div>
+  <header><a class="wordmark" href="#work" aria-label="Joel home">joel</a><nav class="site-nav" aria-label="Explore"><a href="#work" aria-current="page">Work</a><a href="#about">About + contact</a></nav><button id="motion" class="motion" aria-pressed="false">Pause motion <span aria-hidden="true">Ⅱ</span></button></header>
+  <main id="work" data-view="work">
+    <div class="intro"><div class="intro-work"><h1>come on <em>in!</em></h1><p class="subhead">The full portfolio is still under construction.</p></div><div class="intro-about" hidden><h1>hi, I’m <em>Joel.</em></h1></div></div>
     <section class="playground" aria-label="Chonkimals building Joel’s portfolio and showing project previews">
+      <div class="about-scenery-viewport" aria-hidden="true"><div class="about-scenery"><span class="about-sun"></span><span class="about-scenery-word">meet joel</span><span class="about-ground"></span></div></div>
       <div id="stage" aria-hidden="true"></div>
       <button id="danger-button" class="danger-button" type="button" hidden><span class="danger-light" aria-hidden="true"></span><span class="danger-text">DO NOT PRESS</span></button>
       <div id="hole-voices" class="hole-voices" aria-hidden="true"></div>
       <p id="loading" role="status">The welcoming committee is on its way…</p>
-      <div class="character-access"><button class="sr-only" data-character="0">Say hello to the frog</button><button class="sr-only" data-character="1">Say hello to the bear</button><button class="sr-only" data-character="2">Say hello to the dog</button><button class="sr-only" data-prop="hole">Inspect the mysterious holes</button><button class="sr-only" data-prop="shovel">Inspect the shovel</button><button class="sr-only" data-prop="toolbox">Inspect the toolbox</button></div>
+      <div class="character-access"><button class="sr-only" data-character="0">Say hello to the frog</button><button class="sr-only" data-character="1">Say hello to the bear</button><button class="sr-only" data-character="2">Say hello to the dog</button><button class="sr-only" data-joel hidden>Wave to Joel</button><button class="sr-only" data-prop="hole">Inspect the mysterious holes</button><button class="sr-only" data-prop="shovel">Inspect the shovel</button><button class="sr-only" data-prop="toolbox">Inspect the toolbox</button></div>
       <p class="sr-only" id="announcement" aria-live="polite"></p>
     </section>
     <section class="preview" aria-label="Project previews">
-      <div class="preview-masthead"><span class="preview-label">the bear's slide deck</span><span class="preview-instruction">he says you can use the clicker</span></div>
+      <div class="preview-masthead"><span class="preview-label">selected work</span><span class="preview-instruction">pick a project or let the deck play</span></div>
       <div class="preview-current"><div class="preview-heading"><p id="project-group">Zynga Hackathon 2026</p><h2 id="project-title">Chonkimals</h2><a id="watch-clip" class="watch-clip" target="_blank" rel="noopener noreferrer" hidden><span aria-hidden="true">▶</span> Watch the clip ↗</a></div><div class="preview-controls"><button id="previous-project" aria-label="Previous project">←</button><span id="project-number">01 / 08</span><button id="next-project" aria-label="Next project">→</button></div></div>
       <div class="autoplay-track" aria-hidden="true"><span id="autoplay-progress"></span></div>
       <div class="index-heading"><span>pick a slide</span><button id="autoplay" class="autoplay" aria-pressed="true"><span class="autoplay-icon" aria-hidden="true">Ⅱ</span> Pause autoplay</button></div>
@@ -31,11 +32,15 @@
         <div class="index-group"><p>02 / WORDS WITH FRIENDS</p><button data-project="1" data-video><span>02</span>Dice Challenge</button><button data-project="2" data-video><span>03</span>Letter Lock</button><button data-project="3" data-video><span>04</span>Gold Word</button><button data-project="4"><span>05</span>Bonus Pass</button></div>
         <div class="index-group"><p>03 / MERGE DRAGONS</p><button data-project="5"><span>06</span>Dragon Breeding</button><button data-project="6"><span>07</span>FTUE Revamp</button><button data-project="7"><span>08</span>Dragon Book</button></div>
       </div>
-      <p class="preview-note">The full stories are still being built. The bear insisted on a sneak peek.</p>
+      <p class="preview-note">A closer look at the games and features I’ve helped make.</p>
+    </section>
+    <section class="about-panel" id="about" aria-labelledby="about-title" hidden>
+      <div class="about-main"><h2 class="about-kicker" id="about-title">ABOUT ME</h2><p class="about-lead">A Product Designer crafting delightful and engaging user experiences—Currently @ <a href="https://www.zynga.com/" target="_blank" rel="noopener noreferrer">Zynga</a> / <a href="https://www.take2games.com/" target="_blank" rel="noopener noreferrer">Take Two</a>.</p></div>
+      <div class="about-side"><div class="contact-card"><span class="contact-kicker">SAY HELLO</span><h3>Let’s connect.</h3><div class="contact-actions"><a class="contact-link" href="mailto:joelxdesjardins@gmail.com">Email me <span aria-hidden="true">↗</span></a><a class="contact-link" href="https://www.linkedin.com/in/joelxdesjardins/" target="_blank" rel="noopener noreferrer">Connect on LinkedIn <span aria-hidden="true">↗</span></a></div></div></div>
     </section>
   </main>
-  <footer><span>Made by Joel. Supervised by several small animals.</span></footer>
-  <noscript><p class="no-js">Joel’s portfolio is on its way. Enable JavaScript to meet the welcoming committee.</p></noscript>
+  <footer><span>Made by Joel.</span></footer>
+  <noscript><p class="no-js">Joel’s full portfolio is still under construction. Enable JavaScript to explore this preview.</p></noscript>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

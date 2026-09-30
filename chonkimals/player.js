@@ -280,6 +280,8 @@ export function createCharacter(gltf      , opts                    = {})       
           }
           break;
         }
+        default:
+          if (actionMap.has(state)) playClip(state);
       }
     }
     mixer.update(dt);

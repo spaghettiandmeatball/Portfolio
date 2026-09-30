@@ -19,6 +19,13 @@ const lines = [
   ['He’s building the portfolio. I’m building morale.', 'Our permit is written in crayon.', 'I’m the site supervisor. I appointed myself.', 'We’re getting this place up and running. Mostly running.'],
 ];
 const audienceLines = ['Ooh, a sneak peek!', 'Is that a hole or a feature?', 'I came for the snacks.', 'Wait, go back one!', 'I would hire him. For snacks.'];
+const aboutLines = [
+  ['I’m here to make sure he says nice things about himself.', 'Joel let me use the good markers for this page.', 'I packed a lunch for the meet and greet.'],
+  ['I’m his reference. Please call during snack hours.', 'Joel made the games. I made this introduction awkward.', 'He’s good at making little things feel alive. Exhibit A: me.'],
+  ['I followed him here. Is this networking?', 'I’m head of welcoming. There was no interview.', 'He gives very good feedback. I prefer biscuits.'],
+];
+const aboutGuestLines = ['I thought this was a meet and greet.', 'Do we get tiny name tags?', 'I came to meet Joel. I’m staying for the snacks.'];
+const aboutJoelLines = ['Hi, I’m Joel. I’m a Product Designer at Zynga.', 'The tiny details are usually my favorite part.', 'Take a look at the work if you’d like to see what I’ve been making.'];
 const pokeLines = [
   ['Keep your stinkin’ human paws off me!', 'I am a professional. Please poke professionally.', 'Help. A giant finger has breached the perimeter.'],
   ['The presenter is very ticklish.', 'No touching the talent! Unless you have snacks.', 'That was my dramatic fall. Thank you.'],
@@ -36,6 +43,7 @@ let paused = reduced.matches;
 let autoplay = !reduced.matches;
 let projectElapsed = 0;
 let slideWobble = 0;
+let slideCueAt = -Infinity, slideCueManual = false;
 const PROJECT_DURATION = 7;
 let speech, characters = [], audience = [], cart, cartScreen, elapsed = reduced.matches ? 7 : 0, selected = 0, showing = 0;
 let slideTexture, slideCanvas, slideContext, chonkimalsImage;
@@ -76,7 +84,11 @@ autoplayButton.addEventListener('click', () => { autoplay = !autoplay; projectEl
 function showProject(index, announce = false) {
   projectElapsed = 0;
   const next = (index + projects.length) % projects.length;
-  if (next !== selected && !reduced.matches) slideWobble = 1;
+  if (next !== selected && !reduced.matches) {
+    slideWobble = 1;
+    slideCueAt = performance.now();
+    slideCueManual = announce;
+  }
   selected = next;
   const project = projects[selected];
   document.querySelector('#project-group').textContent = project.group;
@@ -152,6 +164,29 @@ function makeHardHat() {
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(.10, .30, .70), orange); stripe.position.y = .29; hat.add(stripe);
   const bill = new THREE.Mesh(new THREE.BoxGeometry(.75, .06, .13), yellow); bill.position.set(0, -.015, .32); bill.castShadow = true; hat.add(bill);
   return hat;
+}
+
+function makeHatDust(scene) {
+  const group = new THREE.Group(); group.visible = false; scene.add(group);
+  const geometry = new THREE.SphereGeometry(.18, 8, 6);
+  const puffs = Array.from({ length: 6 }, (_, index) => {
+    const puff = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: index % 2 ? 0xc8a77e : 0xe0c39c, transparent: true, opacity: 0, depthWrite: false }));
+    group.add(puff); return puff;
+  });
+  return {
+    update(progress, point) {
+      group.visible = progress >= 0 && progress < 1;
+      if (!group.visible) return;
+      group.position.copy(point);
+      puffs.forEach((puff, index) => {
+        const angle = index / puffs.length * Math.PI * 2;
+        const spread = .12 + progress * .62;
+        puff.position.set(Math.cos(angle) * spread, .06 + progress * .22, Math.sin(angle) * spread * .72);
+        puff.scale.setScalar((1 - progress) * (index % 2 ? .85 : 1.15));
+        puff.material.opacity = (1 - progress) * .62;
+      });
+    }
+  };
 }
 
 function makeWorksite(scene) {
@@ -299,10 +334,137 @@ async function init() {
   const sun = new THREE.DirectionalLight(0xfff3dc, 3.6); sun.position.set(-3, 7, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 }); sun.shadow.bias = -.0005; sun.shadow.normalBias = .04; sun.shadow.radius = 5; scene.add(sun);
   const fill = new THREE.DirectionalLight(0xddeaff, 1.5); fill.position.set(4, 3, -2); scene.add(fill);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShadowMaterial({ opacity: .14 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -.02; floor.receiveShadow = true; scene.add(floor);
-  const worksite = makeWorksite(scene), trapHole = makeTrapHole(scene); cart = makeCart(scene);
+  const workLayer = new THREE.Group(); scene.add(workLayer);
+  const worksite = makeWorksite(workLayer), trapHole = makeTrapHole(workLayer); cart = makeCart(workLayer);
   const dangerButton = document.querySelector('#danger-button'), dangerText = dangerButton.querySelector('.danger-text'), voiceLayer = document.querySelector('#hole-voices');
   const holeEvent = { active: false, started: 0 };
   const mishap = { type: null, started: 0, nextAt: 16, count: 0, spoken: false };
+  const main = document.querySelector('main'), playground = document.querySelector('.playground'), workPanel = document.querySelector('.preview'), aboutPanel = document.querySelector('.about-panel');
+  const introWork = document.querySelector('.intro-work'), introAbout = document.querySelector('.intro-about');
+  const navLinks = [...document.querySelectorAll('.site-nav a')];
+  const loader = new GLTFLoader();
+  const JOEL_HEIGHT = 3.65;
+  let joel = null, joelLoad = null, aboutWelcomeAt = -Infinity;
+  function loadJoel() {
+    if (joelLoad) return joelLoad;
+    joelLoad = loader.loadAsync('./assets/joel_wave.glb').then(wave => {
+      const model = wave.scene;
+      model.traverse(node => {
+        if (!node.isMesh) return;
+        node.castShadow = true;
+        node.frustumCulled = false;
+        if (node.material) { node.material.roughness = .78; node.material.metalness = 0; }
+      });
+      const bounds = new THREE.Box3().setFromObject(model);
+      const height = bounds.getSize(new THREE.Vector3()).y || 1;
+      const scale = JOEL_HEIGHT / height;
+      model.scale.setScalar(scale);
+      model.position.y = -bounds.min.y * scale;
+      const root = new THREE.Group(); root.add(model); scene.add(root);
+      const mixer = new THREE.AnimationMixer(model);
+      // The wave starts from a planted stance. Hold that exact pose between greetings.
+      const standing = new THREE.AnimationClip('joel_standing', 1, wave.animations[0].tracks.map(track => {
+        const pose = Array.from(track.createInterpolant().evaluate(0));
+        return new track.constructor(track.name, [0, 1], [...pose, ...pose]);
+      }));
+      const idleAction = mixer.clipAction(standing);
+      const waveAction = mixer.clipAction(wave.animations[0]);
+      for (const track of wave.animations[0].tracks) track.setInterpolation(THREE.InterpolateLinear);
+      waveAction.setLoop(THREE.LoopOnce); waveAction.clampWhenFinished = true;
+      idleAction.play();
+      joel = { root, mixer, idleAction, waveAction, lastHover: -Infinity, lastClick: -Infinity, said: 0 };
+      mixer.addEventListener('finished', event => {
+        if (event.action !== waveAction) return;
+        idleAction.reset().fadeIn(.3).play(); waveAction.fadeOut(.3);
+      });
+      root.visible = view === 'about' || !!viewTransition;
+      return joel;
+    }).catch(error => { console.warn('Joel could not join the scene', error); joelLoad = null; return null; });
+    return joelLoad;
+  }
+  function waveJoel() {
+    if (!joel || paused) return false;
+    joel.idleAction.fadeOut(.25);
+    joel.waveAction.reset().fadeIn(.25).play();
+    return true;
+  }
+  const CAMERA_TRAVEL = 16;
+  let view = 'work', viewTransition = null, sceneProgress = 0;
+  const hatGroundPosition = index => new THREE.Vector3(
+    (host.clientWidth < 900 ? 3.1 : 4.4) * (index === 0 ? -1 : 1), .12, host.clientWidth < 900 ? 3.15 : 2.35
+  );
+  const hatGroundRotation = index => new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(0, index === 0 ? -.45 : .55, index === 0 ? -.24 : .27)
+  );
+  function snapHats(next) {
+    characters.forEach((c, index) => {
+      if (!c.hat) return;
+      c.hatMode = next === 'work' ? 'worn' : 'ground';
+      if (next === 'work') {
+        c.root.add(c.hat);
+        c.hat.position.set(0, 0, 0);
+        c.hat.quaternion.identity();
+      } else {
+        workLayer.add(c.hat);
+        c.hat.position.copy(hatGroundPosition(index));
+        c.hat.quaternion.copy(hatGroundRotation(index));
+      }
+    });
+  }
+  function setSceneProgress(progress) {
+    sceneProgress = progress;
+    playground.style.setProperty('--scene-progress', progress.toFixed(4));
+    const isMobile = host.clientWidth < 900, pan = progress * CAMERA_TRAVEL;
+    camera.position.set(pan, isMobile ? 4.4 : 5.0, isMobile ? 20.8 : 14.5);
+    camera.lookAt(pan, isMobile ? 1.6 : 3.2, 0);
+  }
+  function applyView(next) {
+    const previous = view;
+    view = next; main.dataset.view = next; workLayer.visible = next === 'work';
+    setSceneProgress(next === 'about' ? 1 : 0);
+    if (joel) joel.root.visible = next === 'about';
+    if (next === 'about') loadJoel();
+    document.querySelector('[data-joel]').hidden = next !== 'about';
+    document.querySelectorAll('[data-prop]').forEach(button => { button.hidden = next !== 'work'; });
+    workPanel.hidden = next !== 'work'; aboutPanel.hidden = next !== 'about';
+    introWork.hidden = next !== 'work'; introAbout.hidden = next !== 'about';
+    dangerButton.hidden = next !== 'work';
+    snapHats(next);
+    characters.forEach((c, index) => {
+      if (next === 'about') c.jumpStarted = -Infinity;
+      if (next === 'work' && previous !== 'work') c.nextHopAt = elapsed + 10 + index * 4;
+    });
+    if (next === 'work' && previous !== 'work') mishap.nextAt = elapsed + 15;
+    navLinks.forEach(link => link.setAttribute('aria-current', link.hash === `#${next}` ? 'page' : 'false'));
+  }
+  function navigate(next, addHistory = true) {
+    if (addHistory && location.hash !== `#${next}`) history.pushState({ view: next }, '', `#${next}`);
+    window.scrollTo(0, 0);
+    if (holeEvent.active) {
+      holeEvent.active = false; trapHole.hide(); voiceLayer.replaceChildren();
+      [...characters, ...audience].forEach(c => { c.root.visible = true; c.root.scale.setScalar(1); });
+      dangerButton.disabled = false; dangerButton.classList.remove('is-pressed'); dangerText.textContent = 'DO NOT PRESS';
+    }
+    if (viewTransition?.to === next) return;
+    if (next === view && !viewTransition) return;
+    if (next === view && viewTransition) { viewTransition = null; applyView(next); main.classList.remove('is-traveling'); speech.setVisible(true); return; }
+    if (!speech) { applyView(next); return; }
+    if (paused || reduced.matches) { viewTransition = null; applyView(next); speech.setVisible(true); announcement.textContent = next === 'about' ? 'About and contact' : 'Projects'; return; }
+    speech.bubbles.forEach(bubble => { bubble.age = 10; }); speech.setVisible(false);
+    mishap.type = null; dangerButton.hidden = true;
+    main.classList.add('is-traveling');
+    viewTransition = { to: next, started: performance.now(), welcomed: false };
+    workLayer.visible = true;
+    if (next === 'about') loadJoel().then(() => {
+      if (viewTransition?.to === 'about' && !viewTransition.welcomed) viewTransition.welcomed = waveJoel();
+    });
+    if (joel) joel.root.visible = true;
+    if (view === 'about' && next === 'work') waveJoel();
+  }
+  document.querySelectorAll('a[href="#work"],a[href="#about"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.hash.slice(1)); }));
+  window.addEventListener('popstate', () => navigate(location.hash === '#about' ? 'about' : 'work', false));
+  window.addEventListener('hashchange', () => navigate(location.hash === '#about' ? 'about' : 'work', false));
+  loadJoel(); // Fetch Joel ahead of time, so switching scenes never waits on him.
   const holeLines = ['It said not to press!', 'Do you not believe in Chonkimal rights?', 'Ouch.', 'This was not in the risk assessment.', 'Tell Joel we tried.'];
   dangerButton.addEventListener('click', () => {
     if (holeEvent.active) return;
@@ -322,7 +484,7 @@ async function init() {
     speech.bubbles.forEach(bubble => { bubble.age = 10; }); speech.setVisible(false);
     announcement.textContent = 'You pressed the button. The worksite opened beneath the Chonkimals.';
   });
-  const loader = new GLTFLoader(); speech = new SpeechBubbles(document.querySelector('.playground'));
+  speech = new SpeechBubbles(document.querySelector('.playground'));
   const gltfs = await Promise.all(['frog', 'bear', 'dog'].map(name => loader.loadAsync(`./assets/${name}.glb`)));
   for (const gltf of gltfs) for (const clip of gltf.animations) for (const track of clip.tracks) {
     if (!track.name.endsWith('.position')) continue; const v = track.values, [x, y, z] = v;
@@ -333,7 +495,9 @@ async function init() {
     const root = new THREE.Group(); root.add(actor.root); scene.add(root);
     const headTop = index !== 1 ? actor.root.getObjectByName('mixamorigHeadTop_End') : null;
     const hat = headTop ? makeHardHat() : null; if (hat) root.add(hat);
-    return { root, actor, headTop, hat, hopTime: 1.3 + index * .6, hasJump: gltf.animations.some(c => c.name === 'jumping_up'), reaction: 2, reactionKind: 'hover', lastReaction: -Infinity, lastClick: -Infinity, said: 0, pokes: 0 };
+    const dust = hat ? makeHatDust(workLayer) : null;
+    const idleOptions = index === 0 ? ['idle', 'idle_2', 'idle_3'] : index === 2 ? ['idle_3', 'idle_2', 'idle'] : ['idle'];
+    return { root, actor, headTop, hat, dust, hatMode: hat ? 'worn' : null, hatStart: null, hatStartRotation: null, hatLandedAt: -Infinity, idleOptions, idleIndex: 0, nextIdleAt: 8 + index * 4, jumpStarted: -Infinity, nextHopAt: 11 + index * 5, hasJump: gltf.animations.some(c => c.name === 'jumping_up'), hasRun: gltf.animations.some(c => c.name === 'running'), hasWalk: gltf.animations.some(c => c.name === 'walking'), hasGreeting: gltf.animations.some(c => c.name === 'greeting'), reaction: 2, reactionKind: 'hover', lastReaction: -Infinity, lastClick: -Infinity, said: 0, aboutSaid: 0, pokes: 0 };
   });
   const skins = await Promise.all(['raccoon', 'fox', 'shiba'].map(name => new THREE.TextureLoader().loadAsync(`./assets/skins/dog_${name}.jpg`)));
   audience = skins.map((texture, index) => {
@@ -342,39 +506,55 @@ async function init() {
     actor.root.traverse(node => { if (!node.isMesh) return; const material = node.material.clone(); material.map = texture; node.material = material; });
     actor.update(1, 'idle'); actor.root.updateMatrixWorld(true); actor.root.position.y -= new THREE.Box3().setFromObject(actor.root, true).min.y;
     const root = new THREE.Group(); root.add(actor.root); scene.add(root);
-    return { root, actor, index, arrived: false, reaction: 2, lastReaction: -Infinity, lastClick: -Infinity, pokes: 0 };
+    const idleOptions = [['idle_2', 'idle'], ['idle_3', 'idle_2'], ['idle', 'idle_3']][index];
+    return { root, actor, index, idleOptions, idleIndex: 0, nextIdleAt: 10 + index * 3, arrived: false, reaction: 2, lastReaction: -Infinity, lastClick: -Infinity, aboutSaid: 0, pokes: 0 };
   });
   document.querySelector('#loading').hidden = true; dangerButton.hidden = false;
+  if (location.hash === '#about') { elapsed = Math.max(elapsed, 7); applyView('about'); window.scrollTo(0, 0); }
   let mobile = false, compact = false;
   function resize() {
     const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; mobile = w < 900; compact = w < 1100;
     cart.scale.setScalar(mobile ? .86 : 1);
-    camera.position.set(0, mobile ? 4.4 : 5.0, mobile ? 20.8 : 14.5); camera.lookAt(0, mobile ? 1.6 : 3.2, 0); camera.updateProjectionMatrix(); worksite.resize(mobile, compact);
+    camera.updateProjectionMatrix(); setSceneProgress(sceneProgress); worksite.resize(mobile, compact);
   }
   new ResizeObserver(resize).observe(host); resize();
-  say('0', lines[0][0]);
+  if (view === 'work') say('0', lines[0][0]);
   const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
-  function hit(event) { const r = renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX - r.left) / r.width * 2 - 1, -(event.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(pointer, camera); const main = characters.findIndex(c => raycaster.intersectObject(c.root, true).length); if (main >= 0) return { type: 'main', index: main }; const guest = audience.findIndex(c => raycaster.intersectObject(c.root, true).length); if (guest >= 0) return { type: 'guest', index: guest }; const prop = worksite.hit(raycaster); if (prop) return { type: 'prop', name: prop }; if (cartScreen && raycaster.intersectObject(cartScreen).length) return { type: 'screen' }; return null; }
+  function hit(event) { const r = renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX - r.left) / r.width * 2 - 1, -(event.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(pointer, camera); const main = characters.findIndex(c => raycaster.intersectObject(c.root, true).length); if (main >= 0) return { type: 'main', index: main }; const guest = audience.findIndex(c => raycaster.intersectObject(c.root, true).length); if (guest >= 0) return { type: 'guest', index: guest }; if (view === 'about' && joel && raycaster.intersectObject(joel.root, true).length) return { type: 'joel' }; if (view !== 'work' || viewTransition) return null; const prop = worksite.hit(raycaster); if (prop) return { type: 'prop', name: prop }; if (cartScreen && raycaster.intersectObject(cartScreen).length) return { type: 'screen' }; return null; }
   function react(target, announce = false) {
     if (holeEvent.active) return;
     if (!target) return; if (target.type === 'screen') { if (announce && projects[selected].video) watchClip.click(); else if (announce) showProject(selected + 1, true); return; }
+    const quietAbout = view === 'about' && !viewTransition;
+    if (target.type === 'joel') {
+      const now = performance.now(); if (now - (announce ? joel.lastClick : joel.lastHover) < (announce ? 450 : 1800)) return;
+      if (announce) joel.lastClick = now; else joel.lastHover = now;
+      waveJoel();
+      if (!announce && quietAbout) return;
+      if (quietAbout) aboutWelcomeAt = now;
+      const line = quietAbout ? aboutJoelLines[joel.said++ % aboutJoelLines.length] : announce ? 'I hired the crew. They appointed themselves.' : 'Oh, hey!';
+      say('joel', line); if (announce) announcement.textContent = line;
+      return;
+    }
     if (target.type === 'prop') { const name = target.name, choices = propLines[name], line = choices[propCounts[name]++ % choices.length]; say(name === 'toolbox' ? '2' : '0', line); worksite.bump(name, elapsed); if (announce) announcement.textContent = line; return; }
     if (target.type === 'guest') {
       const c = audience[target.index], now = performance.now();
       if (announce ? now - c.lastClick < 450 : now - c.lastReaction < 1800) return;
       c.lastReaction = now; c.reaction = 0;
-      const line = announce ? guestPokeLines[c.pokes++ % guestPokeLines.length] : audienceLines[(target.index + showing++) % audienceLines.length];
+      const line = quietAbout ? announce ? aboutGuestLines[c.aboutSaid++ % aboutGuestLines.length] : null : announce ? guestPokeLines[c.pokes++ % guestPokeLines.length] : audienceLines[(target.index + showing++) % audienceLines.length];
       if (announce) c.lastClick = now;
-      say(`guest-${target.index}`, line); if (announce) announcement.textContent = line; return;
+      if (!quietAbout || announce) say(`guest-${target.index}`, line);
+      if (announce) announcement.textContent = line; return;
     }
     const c = characters[target.index], now = performance.now();
     if (announce ? now - c.lastClick < 450 : now - c.lastReaction < 1800) return;
     c.lastReaction = now; c.reaction = 0; c.reactionKind = announce ? 'poke' : 'hover';
-    const line = announce ? pokeLines[target.index][c.pokes++ % pokeLines[target.index].length] : lines[target.index][c.said++ % lines[target.index].length];
+    const line = quietAbout ? announce ? aboutLines[target.index][c.aboutSaid++ % aboutLines[target.index].length] : null : announce ? pokeLines[target.index][c.pokes++ % pokeLines[target.index].length] : lines[target.index][c.said++ % lines[target.index].length];
     if (announce) c.lastClick = now;
-    say(String(target.index), line); if (announce) announcement.textContent = line;
+    if (!quietAbout || announce) say(String(target.index), line);
+    if (announce) announcement.textContent = line;
   }
   document.querySelectorAll('[data-character]').forEach(button => button.addEventListener('click', () => react({ type: 'main', index: Number(button.dataset.character) }, true)));
+  document.querySelector('[data-joel]').addEventListener('click', () => { if (joel) react({ type: 'joel' }, true); });
   document.querySelectorAll('[data-prop]').forEach(button => button.addEventListener('click', () => react({ type: 'prop', name: button.dataset.prop }, true)));
   let hovered = '';
   renderer.domElement.addEventListener('pointermove', event => { const target = hit(event), key = target ? `${target.type}-${target.name ?? target.index ?? ''}` : ''; renderer.domElement.style.cursor = target ? 'pointer' : 'default'; if (event.pointerType !== 'touch' && key && key !== hovered) react(target); hovered = key; });
@@ -384,7 +564,22 @@ async function init() {
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), .04); if (document.hidden) return;
     if (!paused) elapsed += dt;
-    if (!paused && !holeEvent.active && !mishap.type && elapsed >= mishap.nextAt) {
+    let runOffset = 0;
+    if (viewTransition) {
+      const age = (performance.now() - viewTransition.started) / 1000;
+      const total = 2.35;
+      const t = Math.min(1, age / total), smooth = t * t * (3 - 2 * t);
+      setSceneProgress(viewTransition.to === 'about' ? smooth : 1 - smooth);
+      runOffset = Math.sin(Math.PI * t) * (viewTransition.to === 'about' ? .45 : -.45);
+      if (age >= total) {
+        const arrived = viewTransition.to, welcomed = viewTransition.welcomed;
+        viewTransition = null; applyView(arrived); main.classList.remove('is-traveling'); speech.setVisible(true); lastLine = elapsed;
+        if (arrived === 'about' && !welcomed) loadJoel().then(() => { if (view === 'about') waveJoel(); });
+        if (arrived === 'work') say('1', 'Back to the slides!');
+        announcement.textContent = arrived === 'about' ? 'About and contact' : 'Projects';
+      }
+    }
+    if (!paused && view === 'work' && !viewTransition && !holeEvent.active && !mishap.type && elapsed >= mishap.nextAt) {
       mishap.type = mishap.count++ % 2 === 0 ? 'cone' : 'snacks';
       mishap.started = elapsed; mishap.nextAt = elapsed + 29 + (mishap.count % 2) * 7; mishap.spoken = false;
     }
@@ -399,17 +594,36 @@ async function init() {
     cart.position.x = (mobile ? 8 : 12) * (1 - eased); cart.rotation.y = Math.sin(Math.PI * move) * -.045;
     slideWobble = paused ? 0 : Math.max(0, slideWobble - dt * 2.6);
     cart.rotation.z = Math.sin((1 - slideWobble) * Math.PI * 3) * slideWobble * .022;
+    const slideAge = (performance.now() - slideCueAt) / 1000;
+    const slidePulse = !paused && view === 'work' && !viewTransition && slideAge >= 0 && slideAge < 1.3 ? Math.sin(Math.PI * slideAge / 1.3) : 0;
     characters.forEach((c, i) => {
-      const home = mobile ? [-3.5, 2.35, 3.55][i] : compact ? [-4.8, 3, 4.8][i] : [-5.45, 3.25, 5.45][i];
+      const workHome = mobile ? [-3.5, 2.35, 3.55][i] : compact ? [-4.8, 3, 4.8][i] : [-5.45, 3.25, 5.45][i];
+      const aboutHome = mobile ? [-2.65, 0, 2.65][i] : [-4.35, 0, 4.35][i];
+      const home = THREE.MathUtils.lerp(workHome, aboutHome, sceneProgress);
       if (i === 1) c.root.position.x = home + (mobile ? 6 : 9) * (1 - eased); else c.root.position.x = home;
+      c.root.position.x += sceneProgress * CAMERA_TRAVEL;
+      c.root.position.x += runOffset;
       c.root.position.z = i === 1 ? -.2 : -.65;
-      if (!paused) { c.hopTime += dt; if (c.hopTime > 3.4 + i * .35) c.hopTime = 0; c.reaction = Math.min(2, c.reaction + dt); }
-      const t = c.hopTime, airborne = t < .85, placingTape = i !== 1 && elapsed < 3.5;
-      c.root.position.y = placingTape || i === 1 && move < 1 ? 0 : airborne ? Math.sin(t / .85 * Math.PI) * .32 : 0;
+      if (!paused) {
+        c.reaction = Math.min(2, c.reaction + dt);
+        if (!viewTransition && elapsed >= c.nextIdleAt && c.idleOptions.length > 1) {
+          c.idleIndex = (c.idleIndex + 1) % c.idleOptions.length;
+          c.nextIdleAt = elapsed + 11 + i * 2;
+        }
+        if (view === 'work' && !viewTransition && !holeEvent.active && c.hasJump && elapsed >= c.nextHopAt) {
+          c.jumpStarted = elapsed;
+          c.nextHopAt = elapsed + (i === 0 ? 16 : 20);
+        }
+      }
+      const t = elapsed - c.jumpStarted, jumping = view === 'work' && !viewTransition && c.hasJump && t >= 0 && t < 1.1;
+      const placingTape = i !== 1 && elapsed < 3.5;
+      c.root.position.y = placingTape || i === 1 && move < 1 ? 0 : jumping && t < .85 ? Math.sin(t / .85 * Math.PI) * .22 : 0;
       const watching = Math.min(1, Math.max(0, (elapsed - 3.2) / 1.8));
       const firstYaw = i === 1 ? -.13 : i === 0 ? .12 : -.12;
       const watchYaw = i === 0 ? .96 : -1.05;
       c.root.rotation.set(0, firstYaw + (watchYaw - firstYaw) * watching, 0);
+      if (view === 'about' && !viewTransition) c.root.rotation.y = [-.35, 0, .35][i];
+      if (viewTransition) c.root.rotation.y = viewTransition.to === 'about' ? Math.PI / 2 : -Math.PI / 2;
       if (c.reaction < 1.2) {
         const p = c.reaction / 1.2;
         if (c.reactionKind === 'poke') {
@@ -422,6 +636,10 @@ async function init() {
           if (i === 2) c.root.rotation.y += Math.PI * 2 * (p * p * (3 - 2 * p));
         }
       }
+      if (viewTransition?.to === 'work' && i !== 1) {
+        const pickup = Math.max(0, Math.min(1, ((performance.now() - viewTransition.started) / 1000 - 1.72) / .58));
+        c.root.rotation.z += (i === 0 ? -.18 : .18) * Math.sin(Math.PI * pickup);
+      }
       if (mishap.type === 'cone' && i === 0 && mishapAge > 1.25 && mishapAge < 2.7) {
         const fix = Math.sin((mishapAge - 1.25) / 1.45 * Math.PI);
         c.root.position.x -= fix * .17; c.root.position.y += fix * .22; c.root.rotation.z -= fix * .13;
@@ -429,24 +647,51 @@ async function init() {
       if (mishap.type === 'snacks' && i === 2 && mishapAge > .3 && mishapAge < 2.4) {
         c.root.rotation.z += Math.sin(mishapAge * 13) * .08 * (1 - mishapAge / 2.4);
       }
-      const state = i === 1 && move < 1 ? 'walking' : placingTape ? 'running' : !c.hasJump ? 'idle' : t < .4 ? 'jumping_up' : t < .85 ? 'falling_idle' : t < 1.1 ? 'hard_landing' : 'idle';
-      if (!paused) c.actor.update(dt, state);
+      if (slidePulse) {
+        if (i === 1) { c.root.rotation.y += slidePulse * (slideCueManual ? .55 : .14); c.root.rotation.z -= slidePulse * (slideCueManual ? .12 : .045); c.root.position.y += slidePulse * (slideCueManual ? .1 : .035); }
+        else c.root.rotation.y += slidePulse * (i === 0 ? .22 : -.22);
+      }
+      if (!paused && view === 'about' && !viewTransition) {
+        const welcome = (performance.now() - aboutWelcomeAt) / 1000 - i * .1;
+        if (welcome > 0 && welcome < .8) c.root.rotation.z += (i === 2 ? -1 : 1) * Math.sin(Math.PI * welcome / .8) * .16;
+      }
+      const presenting = i === 1 && c.hasGreeting && slideCueManual && slidePulse > 0;
+      const state = viewTransition ? 'running' : presenting ? 'greeting' : i === 1 && move < 1 ? 'walking' : placingTape ? 'running' : jumping ? t < .4 ? 'jumping_up' : t < .85 ? 'falling_idle' : 'hard_landing' : c.idleOptions[c.idleIndex];
+      if (!paused) c.actor.update(dt, state === 'running' && !c.hasRun ? c.hasWalk ? 'walking' : 'idle' : state === 'walking' && !c.hasWalk ? 'idle' : state);
     });
     audience.forEach((c, i) => {
       const start = 2.8 + i * .65, progress = Math.min(1, Math.max(0, (elapsed - start) / 2.1)), ease = 1 - (1 - progress) ** 3;
       const home = (i - 1) * (mobile ? 1.15 : 1.5);
-      c.root.position.set(home + (i % 2 ? 1 : -1) * (mobile ? 5 : 9) * (1 - ease), Math.sin(elapsed * 3 + i) * .025, mobile ? 2.7 : 1.35);
+      c.root.position.set(home + (i % 2 ? 1 : -1) * (mobile ? 5 : 9) * (1 - ease) + sceneProgress * CAMERA_TRAVEL + runOffset, Math.sin(elapsed * 3 + i) * .025, mobile ? 2.7 : 1.35);
       const turn = Math.min(1, Math.max(0, (elapsed - start - 1.25) / 1.45));
-      c.root.rotation.y = [2.45, Math.PI, 3.82][i] * turn + Math.sin(elapsed * .65 + i) * .07;
+      c.root.rotation.y = viewTransition ? viewTransition.to === 'about' ? Math.PI / 2 : -Math.PI / 2 : view === 'about' ? [-.15, 0, .15][i] : [2.45, Math.PI, 3.82][i] * turn + Math.sin(elapsed * .65 + i) * .07;
       c.root.rotation.z = c.reaction < 1 ? (i % 2 ? 1 : -1) * Math.sin(Math.PI * c.reaction) ** 2 * .52 : 0;
+      if (slideCueManual && slidePulse) c.root.rotation.z += (i % 2 ? -1 : 1) * slidePulse * .09;
+      if (!paused && view === 'about' && !viewTransition) {
+        const welcome = (performance.now() - aboutWelcomeAt) / 1000 - i * .13;
+        if (welcome > 0 && welcome < .9) {
+          const wave = Math.sin(Math.PI * welcome / .9);
+          c.root.position.y += wave * .2;
+          c.root.rotation.z += (i % 2 ? -1 : 1) * wave * .24;
+        }
+      }
       if (!paused) c.reaction = Math.min(2, c.reaction + dt);
-      if (!paused) c.actor.update(dt, progress < 1 ? 'walking' : 'idle');
+      if (!paused && !viewTransition && progress >= 1 && elapsed >= c.nextIdleAt) {
+        c.idleIndex = (c.idleIndex + 1) % c.idleOptions.length;
+        c.nextIdleAt = elapsed + 12 + i * 2;
+      }
+      if (!paused) c.actor.update(dt, viewTransition || progress < 1 ? 'walking' : c.idleOptions[c.idleIndex]);
       if (!c.arrived && progress >= 1) {
         c.arrived = true;
-        if (!holeEvent.active && i === 0) say('0', 'Wait—are they supposed to be behind the tape?');
-        if (!holeEvent.active && i === 2) say('2', 'It’s fine. I drew a second safety line in crayon.');
+        if (!holeEvent.active && view === 'work' && i === 0) say('0', 'Wait—are they supposed to be behind the tape?');
+        if (!holeEvent.active && view === 'work' && i === 2) say('2', 'It’s fine. I drew a second safety line in crayon.');
       }
     });
+    if (joel) {
+      joel.root.position.set(CAMERA_TRAVEL + (mobile ? -1.65 : -2.15), 0, -.65);
+      joel.root.rotation.y = -.12;
+      if (!paused && (view === 'about' || viewTransition)) joel.mixer.update(dt);
+    }
     if (holeEvent.active) {
       const age = (performance.now() - holeEvent.started) / 1000;
       trapHole.update(age, mobile);
@@ -477,11 +722,54 @@ async function init() {
       }
     }
     worksite.update(elapsed, mishap.type, mishapAge, holeEvent.active); scene.updateMatrixWorld(true);
-    for (const c of characters) { if (!c.hat) continue; const point = c.headTop.getWorldPosition(new THREE.Vector3()); c.hat.position.copy(c.root.worldToLocal(point)); c.hat.position.y += .07; }
-    if (!holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
-    if (autoplay && !paused && !holeEvent.active) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
+    characters.forEach((c, index) => {
+      if (!c.hat) return;
+      if (c.hatMode === 'worn') {
+        const point = c.headTop.getWorldPosition(new THREE.Vector3());
+        c.hat.position.copy(c.root.worldToLocal(point)); c.hat.position.y += .07;
+      }
+      if (!viewTransition) { c.dust.update(-1, hatGroundPosition(index)); return; }
+      const age = (performance.now() - viewTransition.started) / 1000;
+      if (viewTransition.to === 'about') {
+        if (c.hatMode === 'worn') {
+          scene.updateMatrixWorld(true);
+          workLayer.attach(c.hat);
+          c.hatStart = c.hat.position.clone();
+          c.hatStartRotation = c.hat.quaternion.clone();
+          c.hatMode = 'dropping';
+        }
+        if (c.hatMode === 'dropping') {
+          const p = Math.min(1, age / .58), ease = 1 - (1 - p) ** 3;
+          c.hat.position.lerpVectors(c.hatStart, hatGroundPosition(index), ease);
+          c.hat.position.y += Math.sin(Math.PI * p) * .34;
+          c.hat.quaternion.slerpQuaternions(c.hatStartRotation, hatGroundRotation(index), ease);
+          if (p >= 1) { c.hatMode = 'ground'; c.hatLandedAt = performance.now(); }
+        }
+      } else if (viewTransition.to === 'work' && age >= 1.72 && c.hatMode === 'ground') {
+        c.hatStart = c.hat.position.clone();
+        c.hatStartRotation = c.hat.quaternion.clone();
+        c.hatMode = 'lifting';
+      }
+      if (c.hatMode === 'lifting') {
+        const p = Math.min(1, Math.max(0, (age - 1.72) / .58)), ease = p * p * (3 - 2 * p);
+        const point = c.headTop.getWorldPosition(new THREE.Vector3()); point.y += .07;
+        c.hat.position.lerpVectors(c.hatStart, point, ease);
+        c.hat.position.y += Math.sin(Math.PI * p) * .43;
+        c.hat.quaternion.slerpQuaternions(c.hatStartRotation, c.root.getWorldQuaternion(new THREE.Quaternion()), ease);
+        if (p >= 1) {
+          c.root.add(c.hat);
+          c.hat.quaternion.identity();
+          c.hat.position.copy(c.root.worldToLocal(point));
+          c.hatMode = 'worn';
+        }
+      }
+      const dustAge = (performance.now() - c.hatLandedAt) / 850;
+      c.dust.update(viewTransition.to === 'about' ? dustAge : -1, hatGroundPosition(index));
+    });
+    if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
+    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
-    speech.update(paused ? 0 : dt, camera, (key, out) => { if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
+    speech.update(paused ? 0 : dt, camera, (key, out) => { if (key === 'joel') { if (!joel || !joel.root.visible) return false; out.set(joel.root.position.x, JOEL_HEIGHT + .3, joel.root.position.z); return true; } if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
     renderer.render(scene, camera);
   });
 }
