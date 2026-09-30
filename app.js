@@ -3,7 +3,7 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { createCharacter } from './chonkimals/player.js';
 import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
 import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=fcc81c90f55e';
-import { projectCopy } from './project-copy.js?v=d64cc0e41bc3';
+import { projectCopy } from './project-copy.js?v=eaad19e4cdea';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
@@ -129,7 +129,26 @@ function updateAutoplay() {
 updateAutoplay();
 autoplayButton.addEventListener('click', () => { autoplay = !autoplay; projectElapsed = 0; updateAutoplay(); });
 
+// Cancel interrupted entrances so fast browsing always lands on the latest project.
+const contentMotion = new WeakMap();
+function popContent(elements, direction = 1) {
+  elements.filter(element => element && !element.hidden).forEach((element, index) => {
+    contentMotion.get(element)?.cancel();
+    if (reduced.matches) return;
+    const animation = element.animate([
+      { opacity: 0, transform: 'translate3d(' + direction * 6 + 'px, 8px, 0)' },
+      { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+    ], { duration: 480, delay: index * 25, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+    contentMotion.set(element, animation);
+  });
+}
+let panelResize;
 function showProject(index, announce = false) {
+  const panel = document.querySelector('.preview');
+  const oldHeight = panel.getBoundingClientRect().height;
+  panelResize?.cancel();
+  const changed = index !== selected;
+  const direction = index < selected ? -1 : 1;
   projectElapsed = 0;
   const next = (index + projects.length) % projects.length;
   if (next !== selected && !reduced.matches) {
@@ -146,18 +165,47 @@ function showProject(index, announce = false) {
   watchClip.innerHTML = `<span aria-hidden="true">▶</span> ${project.play ? 'Play Game' : 'Watch the clip'}`;
   document.querySelector('#chonkimals-details').hidden = project.kind !== 'chonkimals';
   const story = document.querySelector('#project-details');
-  const paragraphs = projectCopy[project.kind] || [];
-  story.hidden = !paragraphs.length;
+  const copy = projectCopy[project.kind];
+  story.hidden = !copy;
   story.setAttribute('aria-label', `About ${project.title}`);
-  story.replaceChildren(...paragraphs.map((text, index) => {
-    const paragraph = document.createElement('p');
-    paragraph.textContent = text;
-    if (index === 0) paragraph.className = 'project-story-lead';
-    return paragraph;
-  }));
+  story.replaceChildren();
+  if (copy) {
+    const lead = document.createElement('p');
+    lead.className = 'project-story-lead';
+    lead.textContent = copy.lead;
+    const overview = document.createElement('p');
+    overview.textContent = copy.overview;
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = copy.summary;
+    const list = document.createElement('ul');
+    copy.details.forEach(([label, text]) => {
+      const item = document.createElement('li');
+      const heading = document.createElement('strong');
+      heading.textContent = `${label}: `;
+      item.append(heading, document.createTextNode(text));
+      list.append(item);
+    });
+    details.append(summary, list);
+    story.append(lead, overview, details);
+    if (copy.note) {
+      const note = document.createElement('p');
+      note.className = 'project-fact';
+      note.textContent = copy.note;
+      story.append(note);
+    }
+  }
   if (announce) { autoplay = false; updateAutoplay(); }
   document.querySelector('#project-number').textContent = `${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
   projectButtons.forEach((button, i) => button.setAttribute('aria-current', String(i === selected)));
+  if (changed && !panel.hidden) {
+    const newHeight = panel.getBoundingClientRect().height;
+    if (!reduced.matches && oldHeight && newHeight !== oldHeight) {
+      panelResize = panel.animate([{height: oldHeight + 'px'}, {height: newHeight + 'px'}],
+        {duration: 360, easing: 'cubic-bezier(.22,1,.36,1)'});
+    }
+    popContent([document.querySelector('.preview-current'), document.querySelector('#chonkimals-details'), story], direction);
+  }
   drawSlide();
   if (announce) announcement.textContent = `${project.title}, ${project.group}`;
 }
@@ -407,13 +455,25 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(29, 1, .1, 60);
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0xf7f3e9, 0);
+  renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
   host.appendChild(renderer.domElement);
   scene.add(new THREE.HemisphereLight(0xfffcf0, 0xc2b4a3, 2.7));
-  const sun = new THREE.DirectionalLight(0xfff3dc, 3.6); sun.position.set(-3, 7, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 }); sun.shadow.bias = -.0005; sun.shadow.normalBias = .04; sun.shadow.radius = 5; scene.add(sun);
+  const sun = new THREE.DirectionalLight(0xfff3dc, 3.6); sun.position.set(-3, 7, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 }); sun.shadow.bias = -.0005; sun.shadow.normalBias = .04; sun.shadow.radius = 5; scene.add(sun, sun.target);
   const fill = new THREE.DirectionalLight(0xddeaff, 1.5); fill.position.set(4, 3, -2); scene.add(fill);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShadowMaterial({ opacity: .14 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -.02; floor.receiveShadow = true; scene.add(floor);
+  // The shadow-receiving stage meets the work rail’s front fascia.
+  const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xb7a17b, roughness: 1 });
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(20, .48, 40), groundMaterial);
+  floor.position.set(0, -.27, 10); floor.receiveShadow = true; scene.add(floor);
+  const groundClip = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  function maskBelowGround(root) {
+    root.traverse(node => {
+      if (!node.isMesh) return;
+      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      materials.forEach(material => { material.clippingPlanes = [groundClip]; material.clipShadows = true; });
+    });
+  }
   const workLayer = new THREE.Group(); scene.add(workLayer);
   const worksite = makeWorksite(workLayer), trapHole = makeTrapHole(workLayer); cart = makeCart(workLayer);
   const dangerButton = document.querySelector('#danger-button'), dangerText = dangerButton.querySelector('.danger-text'), voiceLayer = document.querySelector('#hole-voices');
@@ -495,6 +555,9 @@ async function init() {
     sceneProgress = progress;
     playground.style.setProperty('--scene-progress', progress.toFixed(4));
     const layout = layoutMix(), pan = progress * CAMERA_TRAVEL;
+    floor.position.x = pan;
+    sun.position.x = pan - 3; sun.target.position.x = pan; fill.position.x = pan + 4;
+    groundMaterial.color.setHex(0xb7a17b).lerp(new THREE.Color(0x829b76), progress);
     camera.position.set(pan, THREE.MathUtils.lerp(4.4, 5.0, layout), THREE.MathUtils.lerp(20.8, 14.5, layout));
     camera.lookAt(pan, THREE.MathUtils.lerp(1.6, 3.2, layout), 0);
   }
@@ -509,6 +572,8 @@ async function init() {
     workPanel.hidden = next !== 'work'; aboutPanel.hidden = next !== 'about';
     introWork.hidden = next !== 'work'; introAbout.hidden = next !== 'about';
     dangerButton.hidden = next !== 'work';
+    if (previous !== next) popContent(next === 'work'
+      ? [introWork, workPanel] : [introAbout, aboutPanel]);
     snapHats(next);
     characters.forEach((c, index) => {
       if (next === 'about') c.jumpStarted = -Infinity;
@@ -589,6 +654,7 @@ async function init() {
     const idleOptions = [['idle_2', 'idle'], ['idle_3', 'idle_2'], ['idle', 'idle_3']][index];
     return { root, actor, index, idleOptions, idleIndex: 0, nextIdleAt: 10 + index * 3, arrived: false, reaction: 2, lastReaction: -Infinity, lastClick: -Infinity, aboutSaid: 0, pokes: 0 };
   });
+  [...characters, ...audience].forEach(c => maskBelowGround(c.root));
   document.querySelector('#loading').hidden = true; dangerButton.hidden = false;
   if (location.hash === '#about') { elapsed = Math.max(elapsed, 7); applyView('about'); window.scrollTo(0, 0); }
   let layout = layoutMix(), wide = wideMix();

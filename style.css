@@ -326,3 +326,20 @@ main[data-view=work] .preview{margin-top:0}
   main[data-view=work] .playground{margin-bottom:44px}
   .danger-button{bottom:-56px}
 }
+
+/* One continuous ground surface meets the work panel at a single soft edge. */
+main[data-view=work] .playground{width:min(1070px,91%)}
+main[data-view=work] #stage{bottom:-36px}
+main[data-view=work] .preview{border-top:1px solid #bda781;border-radius:0 0 10px 10px;box-shadow:5px 6px 0 #e8d7b9,6px 7px 0 #c8a77c,11px 13px 0 #ecdfc8}
+.work-toolbar{border-radius:0;background:linear-gradient(180deg,#e5d8bc,#f1e3c7 26px);box-shadow:0 4px 0 #b89b7220}
+.about-ground{display:none}
+.about-scenery{box-shadow:inset 0 -18px 24px #61785c20}
+@media(max-width:760px){main[data-view=work] #stage{bottom:-44px}}
+
+/* Short paper-like arrivals; the navigation rail stays put when projects change. */
+/* Entrances use one animation; only departures use a CSS fade. */
+.intro,.preview,.about-panel{transition:none}
+main.is-traveling .intro,main.is-traveling .preview,main.is-traveling .about-panel{transition:opacity .18s ease-out}
+.about-panel{animation:none}
+.project-story,.preview-current{transform-origin:top left}
+@media(prefers-reduced-motion:reduce){.intro,.preview,.about-panel{transition:none}main.is-traveling .intro,main.is-traveling .preview,main.is-traveling .about-panel{translate:none}}

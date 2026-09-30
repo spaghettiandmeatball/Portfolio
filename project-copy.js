@@ -1,32 +1,66 @@
 export const projectCopy = {
-  wordometer: [
-    'A word-guessing game where meaning is your clue.',
-    'Created for the Zynga 2025 Hackathon, Word-O-Meter challenges you to uncover a hidden word in 25 guesses. An AI-powered meter shows how closely each guess relates to the target, with hints to help you find your way.',
-    'Play directly in your browser. The first launch downloads an AI model, so an internet connection is needed and loading may take a moment.',
-  ],
-  dice: [
-    'A fast-paced, push-your-luck twist on Words With Friends—and its first permanent PvP mode since Classic.',
-    'Dice Challenge swaps traditional tiles for letter dice. Players roll and re-roll to chase stronger words, then place their dice on a specialized board with multipliers and bonus points for filling entire rows.',
-    'Designed as a high-energy, mildly chaotic palate cleanser, the mode adds a fresh competitive rhythm alongside the slower, more methodical pace of Classic matches.',
-  ],
-  letters: [
-    'A bite-sized, puzzle-forward challenge that brings a fresh daily ritual to Words With Friends.',
-    'We set out to create a satisfying, tactile experience that players could pick up each day and share. New mechanics offered strategic, rewarding decisions while keeping familiar wordplay at the heart of the experience.',
-  ],
-  breeding: [
-    'Giving dragons new purpose through elemental breeding, Dragon Ranks, and a new way to grow a collection.',
-    'Dragon Breeding introduced two Soul Crystal chains and a system that lets players combine a Soul Crystal with two dragons to create a new dragon. The project reinforced Elemental Breed types and gave players more reasons to engage with their dragons.',
-    'Working alongside my lead, I designed UX/UI in Figma and implemented it in Unity. My work included breeding interfaces, upsell moments, likely-results screens, and a redesign of the Beacon upgrade screens.',
-    'I also designed the Gogapedia: a collection screen and proof of concept that helped inform the later Discovery Book project.',
-  ],
-  ftue: [
-    'FTUE Optimization & Starter Quest System: a clearer, more rewarding path from a player’s first steps to their first Camp Wonder.',
-    'Designed together, Starter Quests and the First Time User Experience (FTUE) improvements guided players through key mechanics, with the goal of improving onboarding, engagement, and retention.',
-    'Starter Quests introduced a structured progression path, an updated HUD, a new quest modal, “Find in Camp,” Wonder teasers, and enhanced visual effects. The FTUE work refined early quests, Fog art, widgets, dialogue, and user flows, alongside updates to premium land and offers.',
-    'I led UI/UX across both projects, using Figma for design and Unity for implementation. The focus was to make progression easier to understand and the early-game journey more intuitive and rewarding.',
-  ],
-  book: [
-    'One home for discovering, managing, and growing a dragon collection.',
-    'The Discovery Book project brought the Dragon Book and New Discoveries features together into a single, intuitive system in Merge Dragons! Players could view, manage, and merge their dragons, with collection rewards designed to encourage continued progression.',
-  ],
+  wordometer: {
+    lead: 'A daily word-association puzzle for the time between WWF moves.',
+    overview: 'Guess the hidden word, follow an AI-powered similarity meter, and use hints to find your way. Created for the Zynga 2025 Hackathon as a quick, shareable addition to Words With Friends.',
+    summary: 'Explore the concept',
+    details: [
+      ['How it plays', 'The original concept allowed 20 guesses, with clues from the meter and optional hints. The playable prototype allows 25.'],
+      ['Why word association', 'Games like NYT Connections suggested an appetite for a daily challenge that filled a gap in WWF’s lineup. Shareable scores were part of the concept.'],
+      ['AI prototyping', 'One of Zynga’s first projects to use AI-assisted development for prototyping, using a lightweight, open-source model.'],
+      ['Path to production', 'We explored reusing WWF’s word-validation system and AI-supported puzzle generation in other languages.'],
+      ['Business opportunities', 'Sponsorships, coin-funded hints and powerups, completion ads, and daily puzzle progression were explored as ways to support revenue and return play.'],
+    ],
+    note: 'First play downloads an AI model and needs an internet connection.',
+  },
+  dice: {
+    lead: 'A fast-paced, push-your-luck twist on Words With Friends.',
+    overview: 'WWF’s first permanent PvP mode since Classic swaps tiles for letter dice. Roll, re-roll, and chase stronger words in a lively break from the pace of traditional matches.',
+    summary: 'Explore the mode',
+    details: [
+      ['Push your luck', 'Roll and re-roll letter dice to find stronger words.'],
+      ['Make every placement count', 'A specialized board adds multipliers and bonus points for filling entire rows.'],
+      ['A different rhythm', 'A high-energy, mildly chaotic palate cleanser alongside slower, more methodical Classic matches.'],
+    ],
+  },
+  letters: {
+    lead: 'A bite-sized daily puzzle with a tactile twist on wordplay.',
+    overview: 'We set out to give Words With Friends players a fresh challenge they could pick up each day and share, with satisfying mechanics that reward strategic thinking.',
+    summary: 'Explore the design goals',
+    details: [
+      ['Daily play', 'A short, puzzle-forward experience built for a daily ritual.'],
+      ['Tactile interactions', 'A satisfying experience that makes each decision feel rewarding.'],
+      ['Familiar foundation', 'New strategic mechanics with wordplay at the heart of the experience.'],
+    ],
+  },
+  breeding: {
+    lead: 'New purpose for dragons. New ways to grow a collection.',
+    overview: 'Dragon Breeding brings together Soul Crystals, elemental breeding, and Dragon Ranks. I worked alongside my lead on UX/UI, designing in Figma and implementing in Unity.',
+    summary: 'Explore the feature and my contributions',
+    details: [
+      ['Breeding system', 'Two Soul Crystal chains and a mechanic that combines a crystal with two dragons to create a new dragon.'],
+      ['Player decisions', 'Breeding interfaces, likely-results screens, and upsell moments.'],
+      ['Beacon upgrades', 'Recreated and improved the upgrade screens.'],
+      ['Gogapedia', 'A collection screen and proof of concept that helped inform the later Discovery Book project.'],
+    ],
+  },
+  ftue: {
+    lead: 'A clearer path from first steps to a first Camp Wonder.',
+    overview: 'Starter Quests and FTUE improvements were designed together to guide players through key mechanics. I led UI/UX across both, using Figma and Unity to make early progression more intuitive and rewarding.',
+    summary: 'Explore the onboarding improvements',
+    details: [
+      ['Starter Quests', 'A structured progression path, updated HUD, new quest modal, and “Find in Camp” feature.'],
+      ['Wonder discovery', 'Teasers and enhanced visual effects to help guide players toward their first Camp Wonder.'],
+      ['Early-game clarity', 'Refined quests, Fog art, widgets, dialogue, and user flows.'],
+      ['Offers and progression', 'Updates to premium land and offers, with the goal of improving onboarding, engagement, and retention.'],
+    ],
+  },
+  book: {
+    lead: 'One home for discovering and growing a dragon collection.',
+    overview: 'Discovery Book united Dragon Book and New Discoveries in Merge Dragons!, making it easier to explore a collection and see what comes next.',
+    summary: 'Explore the collection experience',
+    details: [
+      ['One system', 'View, manage, and merge dragons in a unified collection experience.'],
+      ['Rewarding discovery', 'Collection rewards designed to encourage continued progression.'],
+    ],
+  },
 };
