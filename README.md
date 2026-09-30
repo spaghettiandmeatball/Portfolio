@@ -10,6 +10,10 @@ Interactive 3D welcoming committee featuring real-time animation, interactive sp
 - Zero analytics, trackers, contact forms, or backend dependencies.
 - Respects `prefers-reduced-motion` settings.
 
+## Publishing
+
+Run `node tools/version-assets.mjs` after editing the site and before committing/pushing. This stamps content versions into the stylesheet, entry script, and project-module URLs so a new page cannot load incompatible cached files from an earlier deployment.
+
 ## Interaction
 Tap a character or its label to trigger a hop and speech bubble. Animations respect the device's reduced-motion preference. Dice Challenge and Letter Lock have looping presentation videos with an Unmute preview / Mute preview control. Each new slide starts muted.
 

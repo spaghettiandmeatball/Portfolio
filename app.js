@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { createCharacter } from './chonkimals/player.js';
 import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
-import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js';
-import { projectCopy } from './project-copy.js';
+import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=fcc81c90f55e';
+import { projectCopy } from './project-copy.js?v=d64cc0e41bc3';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
