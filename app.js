@@ -2,20 +2,32 @@ import * as THREE from 'three';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { createCharacter } from './chonkimals/player.js';
 import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
-import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=fcc81c90f55e';
-import { projectCopy } from './project-copy.js?v=eaad19e4cdea';
+import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=f50ded3c0037';
+import { projectCopy } from './project-copy.js?v=b810d130723e';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
   { group: 'Zynga Hackathon 2025', title: 'Word-O-Meter', kind: 'wordometer', play: './play/word-o-meter/' },
   { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM', embed: 'https://www.youtube-nocookie.com/embed/Y0ORyzqeXgM?autoplay=1&playsinline=1&rel=0' },
   { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube-nocookie.com/embed/DIEdCnECGjg?autoplay=1&playsinline=1&rel=0' },
-  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', embed: 'https://www.instagram.com/reel/DdUcDmelR2F/embed/' },
+  { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', localVideo: './assets/videos/gold-word.mp4' },
   { group: 'Words With Friends', title: 'Bonus Pass', kind: 'pass' },
   { group: 'Merge Dragons', title: 'Dragon Breeding', kind: 'breeding', image: 'project-dragon-breeding.png' },
-  { group: 'Merge Dragons', title: 'FTUE & Starter Quests', kind: 'ftue', image: 'project-ftue.png' },
-  { group: 'Merge Dragons', title: 'Dragon Book', kind: 'book', image: 'project-dragon-book.png' },
+  { group: 'Merge Dragons', title: 'A Better Beginning', kind: 'ftue', image: 'project-ftue.png' },
+  { group: 'Merge Dragons', title: 'Discovery Book', kind: 'book', image: 'project-dragon-book.png' },
 ];
+// Shuffle once per visit; selecting a named project restores the curated sequence.
+const defaultProjectOrder = [2, 3, 6, 7, 8, 4, 5, 0, 1];
+let projectOrder = [...defaultProjectOrder];
+for (let i = projectOrder.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [projectOrder[i], projectOrder[j]] = [projectOrder[j], projectOrder[i]];
+}
+function adjacentProject(step) {
+  return projectOrder[(projectOrder.indexOf(selected) + step + projectOrder.length) % projectOrder.length];
+}
+function browseProject(step, announce = false) { showProject(adjacentProject(step), announce, step); }
+function selectProject(index) { projectOrder = [...defaultProjectOrder]; showProject(index, true); }
 const lines = [
   ['I measured twice and hopped once.', 'He pays me 15 snacks an hour.', 'We dug a hole. That counts as progress.', 'The site is looking great. Can’t wait for you to see it.', 'We’re working as fast as our little legs can go.'],
   ['I brought some of Joel’s work!', 'The monitor is load-bearing. Probably.', 'I’m one of the references on his résumé.', 'Please enjoy this very official presentation.', 'I’m available for reference checks after my nap.'],
@@ -38,6 +50,37 @@ const guestPokeLines = ['I just got here!', 'I was told this was a safe viewing 
 const propLines = { hole: ['This is an important hole.', 'The hole has excellent growth potential.'], shovel: ['This is my senior shovel.', 'I put it on my résumé.'], toolbox: ['The toolbox is mostly snacks.', 'Please return all borrowed snacks.'] };
 const propCounts = { hole: 0, shovel: 0, toolbox: 0 };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const animationVideos = [...document.querySelectorAll('.case-animation video')];
+const animationVisibility = new WeakMap();
+const animationPaused = new WeakSet();
+function syncAnimation(video) {
+  const play = animationVisibility.get(video) && !reduced.matches && !document.hidden && !animationPaused.has(video);
+  video.muted = true;
+  const button = video.closest('figure').querySelector('.animation-toggle');
+  button.textContent = play ? 'Pause animation' : 'Play animation';
+  button.setAttribute('aria-pressed', String(!!play));
+  if (play) video.play().catch(() => { button.textContent = 'Play animation'; button.setAttribute('aria-pressed', 'false'); });
+  else video.pause();
+}
+const animationObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+  animationVisibility.set(entry.target, entry.isIntersecting);
+  syncAnimation(entry.target);
+}), { threshold: .2 });
+animationVideos.forEach(video => {
+  video.removeAttribute('autoplay');
+  video.pause();
+  animationObserver.observe(video);
+  video.closest('figure').querySelector('.animation-toggle').addEventListener('click', () => {
+    if (!video.paused) { animationPaused.add(video); video.pause(); }
+    else { animationPaused.delete(video); video.muted = true; video.play().catch(() => {}); }
+    const button = video.closest('figure').querySelector('.animation-toggle');
+    button.textContent = video.paused ? 'Play animation' : 'Pause animation';
+    button.setAttribute('aria-pressed', String(!video.paused));
+  });
+});
+reduced.addEventListener('change', () => animationVideos.forEach(syncAnimation));
+document.addEventListener('visibilitychange', () => animationVideos.forEach(syncAnimation));
+
 const autoplayButton = document.querySelector('#autoplay');
 const autoplayProgress = document.querySelector('#autoplay-progress');
 const announcement = document.querySelector('#announcement');
@@ -60,7 +103,10 @@ slideVideo.preload = 'metadata';
 slideVideo.hidden = true;
 slideVideo.setAttribute('aria-hidden', 'true');
 document.body.appendChild(slideVideo);
-const slideClips = { dice: './assets/videos/dice-challenge.mp4', letters: './assets/videos/letter-lock.mp4' };
+const slideClips = { chonkimals: './assets/videos/chonkimals-trailer.mp4', dice: './assets/videos/dice-challenge.mp4', letters: './assets/videos/letter-lock.mp4', gold: './assets/videos/gold-word.mp4' };
+const trailerPoster = new Image();
+trailerPoster.onload = drawSlide;
+trailerPoster.src = './assets/chonkimals-trailer-poster.jpg';
 const previewSound = document.querySelector('#preview-sound');
 function updatePreviewSound() {
   previewSound.textContent = slideVideo.muted ? 'Unmute preview' : 'Mute preview';
@@ -116,7 +162,10 @@ function getProjectImage(project) {
 function say(key, line) { if (!speech) return; speech.bubbles.forEach(b => { b.age = 10; }); speech.show(key, line); }
 const shot = new Image(); shot.src = './assets/chonkimals-preview.png';
 shot.onload = () => { chonkimalsImage = shot; drawSlide(); };
-document.fonts.load('600 108px Fredoka').then(drawSlide);
+const openingVisuals = Promise.allSettled([
+  document.fonts.load('600 108px Fredoka').then(drawSlide),
+  shot.decode(),
+]);
 const projectButtons = [...document.querySelectorAll('[data-project]')];
 const watchClip = document.querySelector('#watch-clip');
 watchClip.addEventListener('click', () => { projectElapsed = 0; openProjectPlayer(projects[selected]); });
@@ -142,13 +191,22 @@ function popContent(elements, direction = 1) {
     contentMotion.set(element, animation);
   });
 }
+function easeInPage(element, { delay = 0, distance = 24, duration = 900 } = {}) {
+  contentMotion.get(element)?.cancel();
+  if (reduced.matches) return;
+  const animation = element.animate([
+    { opacity: 0, transform: `translate3d(0, ${distance}px, 0)` },
+    { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+  ], { duration, delay, easing: 'cubic-bezier(.22, .7, .18, 1)', fill: 'backwards' });
+  contentMotion.set(element, animation);
+}
 let panelResize;
-function showProject(index, announce = false) {
+function showProject(index, announce = false, travelDirection) {
   const panel = document.querySelector('.preview');
   const oldHeight = panel.getBoundingClientRect().height;
   panelResize?.cancel();
   const changed = index !== selected;
-  const direction = index < selected ? -1 : 1;
+  const direction = travelDirection || (projectOrder.indexOf(index) < projectOrder.indexOf(selected) ? -1 : 1);
   projectElapsed = 0;
   const next = (index + projects.length) % projects.length;
   if (next !== selected && !reduced.matches) {
@@ -159,8 +217,13 @@ function showProject(index, announce = false) {
   selected = next;
   const project = projects[selected];
   selectSlideVideo(project);
+  const detailRoutes = { dice: 'dice-challenge', letters: 'letter-lock', breeding: 'dragon-breeding', ftue: 'onboarding', book: 'discovery-book' };
+  document.querySelector('#project-details-link').hidden = !detailRoutes[project.kind];
+  document.querySelector('#project-details-link').href = '#' + (detailRoutes[project.kind] || 'work');
   document.querySelector('#project-group').textContent = project.group;
   document.querySelector('#project-title').textContent = project.title;
+  document.querySelector('#coming-next-title').textContent = projects[adjacentProject(1)].title;
+  document.querySelector('#coming-next').setAttribute('aria-label', `Next project: ${projects[adjacentProject(1)].title}`);
   watchClip.hidden = !(project.video || project.play);
   watchClip.innerHTML = `<span aria-hidden="true">▶</span> ${project.play ? 'Play Game' : 'Watch the clip'}`;
   document.querySelector('#chonkimals-details').hidden = project.kind !== 'chonkimals';
@@ -196,8 +259,8 @@ function showProject(index, announce = false) {
     }
   }
   if (announce) { autoplay = false; updateAutoplay(); }
-  document.querySelector('#project-number').textContent = `${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
-  projectButtons.forEach((button, i) => button.setAttribute('aria-current', String(i === selected)));
+  document.querySelector('#project-number').textContent = `${String(projectOrder.indexOf(selected) + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
+  projectButtons.forEach(button => button.setAttribute('aria-current', String(Number(button.dataset.project) === selected)));
   if (changed && !panel.hidden) {
     const newHeight = panel.getBoundingClientRect().height;
     if (!reduced.matches && oldHeight && newHeight !== oldHeight) {
@@ -209,10 +272,11 @@ function showProject(index, announce = false) {
   drawSlide();
   if (announce) announcement.textContent = `${project.title}, ${project.group}`;
 }
-document.querySelector('#previous-project').addEventListener('click', () => showProject(selected - 1, true));
-document.querySelector('#next-project').addEventListener('click', () => showProject(selected + 1, true));
-projectButtons.forEach((button, i) => button.addEventListener('click', () => showProject(i, true)));
-showProject(0);
+document.querySelector('#previous-project').addEventListener('click', () => browseProject(-1, true));
+document.querySelector('#next-project').addEventListener('click', () => browseProject(1, true));
+document.querySelector('#coming-next').addEventListener('click', () => browseProject(1, true));
+projectButtons.forEach(button => button.addEventListener('click', () => selectProject(Number(button.dataset.project))));
+showProject(projectOrder[0]);
 function pauseForProjectStory() { autoplay = false; updateAutoplay(); }
 document.querySelectorAll('.project-story').forEach(story => {
   story.addEventListener('pointerenter', pauseForProjectStory);
@@ -223,6 +287,33 @@ document.querySelectorAll('.project-story').forEach(story => {
 function drawSlide() {
   if (!slideContext) return;
   const c = slideContext, p = projects[selected], w = slideCanvas.width, h = slideCanvas.height;
+  if (p.kind === 'chonkimals') {
+    const backdrop = c.createLinearGradient(0, 0, 0, h);
+    backdrop.addColorStop(0, '#29464f');
+    backdrop.addColorStop(.55, '#456964');
+    backdrop.addColorStop(1, '#71846b');
+    c.fillStyle = backdrop; c.fillRect(0, 0, w, h);
+    const glow = c.createRadialGradient(w / 2, h * .45, 30, w / 2, h * .45, h * .8);
+    glow.addColorStop(0, 'rgba(230,238,210,.22)');
+    glow.addColorStop(1, 'rgba(230,238,210,0)');
+    c.fillStyle = glow; c.fillRect(0, 0, w, h);
+    const media = slideVideo.readyState >= 2 && slideVideo.videoWidth ? slideVideo : trailerPoster;
+    const mediaWidth = media.videoWidth || media.naturalWidth;
+    const mediaHeight = media.videoHeight || media.naturalHeight;
+    if (mediaWidth && mediaHeight) {
+      const scale = Math.min(w / mediaWidth, h * .96 / mediaHeight);
+      const width = mediaWidth * scale, height = mediaHeight * scale;
+      const x = (w - width) / 2, y = (h - height) / 2;
+      c.save();
+      c.shadowColor = 'rgba(28,46,32,.35)'; c.shadowBlur = 18; c.shadowOffsetY = 5;
+      c.fillStyle = '#223529'; c.beginPath(); c.roundRect(x, y, width, height, 9); c.fill();
+      c.shadowColor = 'transparent'; c.clip();
+      c.drawImage(media, x, y, width, height);
+      c.restore();
+    }
+    if (slideTexture) slideTexture.needsUpdate = true;
+    return;
+  }
   if (slideClips[p.kind] && slideVideo.readyState >= 2 && slideVideo.videoWidth) {
     const scale = Math.min(w / slideVideo.videoWidth, h / slideVideo.videoHeight);
     const width = slideVideo.videoWidth * scale, height = slideVideo.videoHeight * scale;
@@ -240,7 +331,11 @@ function drawSlide() {
     c.drawImage(image, (w - image.width * scale) / 2, (h - image.height * scale) / 2, image.width * scale, image.height * scale);
     c.fillStyle = 'rgba(39,34,25,.77)'; c.fillRect(0, h - 133, w, 133);
     c.textAlign = 'left'; c.fillStyle = '#fff8e9'; c.font = '600 28px Fredoka, sans-serif'; c.fillText(p.group.toLowerCase(), 43, h - 101);
-    c.font = '600 70px Fredoka, sans-serif'; c.fillText(p.title.toLowerCase(), 40, h - 24, w - 80);
+    if (p.kind === 'ftue') {
+      c.font = '600 35px Fredoka, sans-serif';
+      c.fillText('a better beginning', 40, h - 53, w - 80);
+      c.fillText('FTUE Optimization', 40, h - 14, w - 80);
+    } else { c.font = '600 70px Fredoka, sans-serif'; c.fillText(p.title.toLowerCase(), 40, h - 24, w - 80); }
     if (p.video || p.play) drawVideoCue(c, w / 2, 257, p.play ? 'PLAY GAME' : 'WATCH THE CLIP');
   } else {
     const ink = merge ? '#355646' : '#49362c', accent = merge ? '#77945d' : '#b87149';
@@ -248,7 +343,7 @@ function drawSlide() {
     c.strokeRect(22, 22, w - 44, h - 44); c.setLineDash([]);
     c.fillStyle = ink; c.textAlign = 'left';
     c.font = '600 39px Fredoka, sans-serif'; c.fillText(p.group.toLowerCase(), 67, 110);
-    c.font = '600 26px Fredoka, sans-serif'; c.textAlign = 'right'; c.fillText(`${String(selected + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`, w - 68, 108);
+    c.font = '600 26px Fredoka, sans-serif'; c.textAlign = 'right'; c.fillText(`${String(projectOrder.indexOf(selected) + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`, w - 68, 108);
     const words = p.title.toLowerCase().split(' '), split = p.title.length > 14;
     const titleLines = split ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [p.title.toLowerCase()];
     const titleSize = titleLines.some(line => line.length > 13) ? 108 : 135;
@@ -481,6 +576,27 @@ async function init() {
   const mishap = { type: null, started: 0, nextAt: 16, count: 0, spoken: false };
   const main = document.querySelector('main'), playground = document.querySelector('.playground'), workPanel = document.querySelector('.preview'), aboutPanel = document.querySelector('.about-panel');
   const introWork = document.querySelector('.intro-work'), introAbout = document.querySelector('.intro-about');
+  const casePanels = [...document.querySelectorAll('.case-panel')];
+  const caseKinds = { 'dice-challenge': 'dice', 'letter-lock': 'letters', 'dragon-breeding': 'breeding', onboarding: 'ftue', 'discovery-book': 'book' };
+  const caseOrder = Object.keys(caseKinds);
+  casePanels.forEach(panel => {
+    const index = caseOrder.indexOf(panel.dataset.case);
+    const nav = panel.querySelector('.case-project-nav');
+    nav.replaceChildren(...[-1, 1].map(direction => {
+      const route = caseOrder[(index + direction + caseOrder.length) % caseOrder.length];
+      const link = document.createElement('a');
+      link.href = '#' + route; link.dataset.caseDirection = direction;
+      const label = document.createElement('span');
+      label.textContent = direction < 0 ? '← Previous project' : 'Next project →';
+      const title = document.createElement('strong');
+      title.textContent = projects.find(project => project.kind === caseKinds[route]).title;
+      link.append(label, title); return link;
+    }));
+  });
+  const isCase = next => Object.hasOwn(caseKinds, next);
+  const caseFor = next => casePanels.find(panel => panel.dataset.case === next);
+  const route = () => ['about', ...Object.keys(caseKinds)].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'work';
+  const destination = next => isCase(next) ? caseFor(next) : aboutPanel;
   const navLinks = [...document.querySelectorAll('.site-nav a')];
   const loader = new GLTFLoader();
   const JOEL_HEIGHT = 3.65;
@@ -517,7 +633,7 @@ async function init() {
         if (event.action !== waveAction) return;
         idleAction.reset().fadeIn(.3).play(); waveAction.fadeOut(.3);
       });
-      root.visible = view === 'about' || !!viewTransition;
+      root.visible = viewTransition ? viewTransition.to === 'about' && (!viewTransition.lowering || viewTransition.lowered) : view === 'about';
       return joel;
     }).catch(error => { console.warn('Joel could not join the scene', error); joelLoad = null; return null; });
     return joelLoad;
@@ -529,7 +645,9 @@ async function init() {
     return true;
   }
   const CAMERA_TRAVEL = 16;
-  let view = 'work', viewTransition = null, sceneProgress = 0;
+  let view = 'work', viewTransition = null, sceneProgress = 0, sceneryProgress = 0, sceneSide = 1, scenePan = 0;
+  const sceneLocation = next => next === 'work' ? 0 : next === 'about' ? CAMERA_TRAVEL : -CAMERA_TRAVEL;
+
   const hatGroundPosition = index => new THREE.Vector3(
     THREE.MathUtils.lerp(3.1, 4.4, layoutMix()) * (index === 0 ? -1 : 1), .12, THREE.MathUtils.lerp(3.15, 2.35, layoutMix())
   );
@@ -551,20 +669,32 @@ async function init() {
       }
     });
   }
-  function setSceneProgress(progress) {
+  function setSceneProgress(progress, targetPan = scenePan, backgroundProgress = progress) {
     sceneProgress = progress;
-    playground.style.setProperty('--scene-progress', progress.toFixed(4));
-    const layout = layoutMix(), pan = progress * CAMERA_TRAVEL;
+    sceneryProgress = backgroundProgress;
+    playground.style.setProperty('--scene-progress', sceneryProgress.toFixed(4));
+    scenePan = targetPan;
+    const layout = layoutMix(), pan = scenePan;
     floor.position.x = pan;
     sun.position.x = pan - 3; sun.target.position.x = pan; fill.position.x = pan + 4;
-    groundMaterial.color.setHex(0xb7a17b).lerp(new THREE.Color(0x829b76), progress);
+    groundMaterial.color.setHex(0xb7a17b).lerp(new THREE.Color(sceneSide < 0 ? 0xb7a17b : 0x829b76), sceneryProgress);
     camera.position.set(pan, THREE.MathUtils.lerp(4.4, 5.0, layout), THREE.MathUtils.lerp(20.8, 14.5, layout));
     camera.lookAt(pan, THREE.MathUtils.lerp(1.6, 3.2, layout), 0);
   }
-  function applyView(next) {
+  function applyView(next, alreadyRevealed = false) {
     const previous = view;
-    view = next; main.dataset.view = next; workLayer.visible = next === 'work';
-    setSceneProgress(next === 'about' ? 1 : 0);
+    playground.hidden = false;
+    if (isCase(next)) selectProject(projects.findIndex(project => project.kind === caseKinds[next]));
+    const crewComment = document.querySelector('.crew-commentary');
+    crewComment.hidden = !isCase(next);
+    if (isCase(next)) crewComment.querySelector('span').textContent = { 'dice-challenge': 'Rolling out another project. Literally.', 'letter-lock': 'We found the words. Where did the snacks go?', 'dragon-breeding': 'Bear with me. I’m on crank duty.', onboarding: 'Every great camp adventure starts somewhere.', 'discovery-book': 'We like to keep our dragons organized.' }[next];
+    view = next; main.dataset.view = next; main.dataset.casePage = String(isCase(next)); workLayer.visible = next === 'work';
+    sceneSide = isCase(next) ? -1 : 1;
+    workLayer.position.x = 0;
+    setSceneProgress(next !== 'work' ? 1 : 0, next === 'about' && alreadyRevealed ? scenePan : sceneLocation(next));
+    main.classList.remove('is-case-travel', 'is-hoisting', 'is-lowering');
+    casePanels.forEach(panel => { panel.hidden = panel.dataset.case !== next; });
+    document.querySelector('.about-scenery-word').textContent = isCase(next) ? 'dragon breeding' : 'meet joel';
     if (joel) joel.root.visible = next === 'about';
     if (next === 'about') loadJoel();
     document.querySelector('[data-joel]').hidden = next !== 'about';
@@ -572,19 +702,117 @@ async function init() {
     workPanel.hidden = next !== 'work'; aboutPanel.hidden = next !== 'about';
     introWork.hidden = next !== 'work'; introAbout.hidden = next !== 'about';
     dangerButton.hidden = next !== 'work';
-    if (previous !== next) popContent(next === 'work'
-      ? [introWork, workPanel] : [introAbout, aboutPanel]);
+    if (previous !== next && !alreadyRevealed) popContent(next === 'work'
+      ? [introWork, workPanel] : [introAbout, destination(next)]);
+    [introWork.parentElement, introWork, introAbout, workPanel, aboutPanel, ...casePanels].forEach(element => element.classList.remove('is-transition-arriving'));
     snapHats(next);
     characters.forEach((c, index) => {
       if (next === 'about') c.jumpStarted = -Infinity;
       if (next === 'work' && previous !== 'work') c.nextHopAt = elapsed + 10 + index * 4;
     });
     if (next === 'work' && previous !== 'work') mishap.nextAt = elapsed + 15;
-    navLinks.forEach(link => link.setAttribute('aria-current', link.hash === `#${next}` ? 'page' : 'false'));
+    navLinks.forEach(link => link.setAttribute('aria-current', link.hash === (isCase(next) ? '#work' : `#${next}`) ? 'page' : 'false'));
+    if (previous !== next) (isCase(next) ? caseFor(next).querySelector('h1') : document.querySelector('.wordmark')).focus({ preventScroll: true });
   }
-  function navigate(next, addHistory = true) {
+  function revealIncoming(next) {
+    if (!isCase(next) && viewTransition?.lowering) { main.dataset.casePage = "false"; main.classList.remove("is-lowering"); workLayer.visible = next === 'work'; }
+    if (isCase(next)) {
+      const introHeight = introWork.parentElement.getBoundingClientRect().height;
+      const fullHeight = playground.getBoundingClientRect().height;
+      const stripHeight = innerWidth <= 760 ? 124 : 154;
+      const sceneOffset = -fullHeight * .57;
+      playground.style.setProperty('--crew-scene-height', fullHeight + 'px');
+      playground.style.setProperty('--crew-scene-offset', sceneOffset + 'px');
+      main.dataset.casePage = 'true'; main.classList.add('is-hoisting');
+      const liftOptions = { duration: 1350, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' };
+      main.animate([{ transform: 'translateY(' + introHeight + 'px)' }, { transform: 'translateY(0)' }], liftOptions);
+      playground.animate([{ height: fullHeight + 'px' }, { height: stripHeight + 'px' }], liftOptions);
+      host.animate([{ top: '0px' }, { top: sceneOffset + 'px' }], liftOptions);
+      document.querySelector('.crew-commentary').hidden = true;
+    }
+    const leaving = [introWork, workPanel, introAbout, aboutPanel, ...casePanels];
+    const arriving = next !== 'work' ? [introAbout, destination(next)] : [introWork, workPanel];
+    leaving.forEach(element => { element.hidden = true; });
+    arriving.forEach(element => { element.hidden = false; element.classList.add('is-transition-arriving'); });
+    introWork.parentElement.classList.add('is-transition-arriving');
+    if (next === 'work') easeInPage(introWork, { distance: 12, duration: 700 });
+    const panel = next === 'work' ? workPanel : destination(next);
+    if (isCase(next) || (isCase(view) && next !== 'about')) {
+      contentMotion.get(panel)?.cancel();
+      if (!reduced.matches) contentMotion.set(panel, panel.animate([
+        { opacity: 1, transform: isCase(next) ? 'translateY(65vh)' : 'translateX(100vw)' },
+        { opacity: 1, transform: isCase(next) ? 'translateY(-2px)' : 'translateX(-8px)', offset: .9 },
+        { opacity: 1, transform: 'translate(0,0)' }
+      ], { duration: isCase(next) ? 1350 : 1100, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' }));
+    } else easeInPage(panel, { delay: 90, distance: 26, duration: 950 });
+  }
+  let caseSwipe = null, swipeId = 0, scrollJourney = 0;
+  function returnToTop(done) {
+    const journey = ++scrollJourney;
+    const startY = window.scrollY;
+    if (reduced.matches || startY < 24) { window.scrollTo({ top: 0, behavior: 'instant' }); done(); return; }
+    const duration = Math.min(750, 380 + Math.sqrt(startY) * 6);
+    const started = performance.now();
+    function step(now) {
+      if (journey !== scrollJourney) return;
+      const progress = Math.min(1, (now - started) / duration);
+      const eased = progress < .5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+      window.scrollTo({ top: startY * (1 - eased), behavior: 'instant' });
+      if (progress < 1) requestAnimationFrame(step);
+      else done();
+    }
+    requestAnimationFrame(step);
+  }
+  function navigate(next, addHistory = true, swipeDirection = null, atTop = false) {
+    if (!atTop && next !== view && window.scrollY > 24) { returnToTop(() => navigate(next, addHistory, swipeDirection, true)); return; }
+    if (!atTop) ++scrollJourney;
+    document.querySelectorAll(".case-panel video").forEach(video => video.pause());
+    if (caseSwipe) { ++swipeId; caseSwipe.cancel(); caseSwipe = null; }
+    if (isCase(next) && isCase(view) && next !== view) {
+      const id = ++swipeId;
+      const order = Object.keys(caseKinds);
+      const direction = swipeDirection ?? (order.indexOf(next) > order.indexOf(view) ? 1 : -1);
+      if (addHistory && location.hash !== '#' + next) history.pushState({ view: next }, '', '#' + next);
+      const outgoing = caseFor(view), incoming = caseFor(next);
+      const stage = document.querySelector('.case-stage');
+      const finish = () => {
+        applyView(next, true);
+        speech?.setVisible(true);
+        announcement.textContent = incoming.querySelector('h1').textContent + ' case study';
+      };
+      if (reduced.matches) { finish(); return; }
+      const oldHeight = stage.getBoundingClientRect().height;
+      incoming.hidden = false;
+      main.inert = true;
+      stage.classList.add('is-swiping');
+      const newHeight = incoming.getBoundingClientRect().height + 72;
+      stage.style.height = oldHeight + 'px';
+      selectProject(projects.findIndex(project => project.kind === caseKinds[next]));
+      const options = { duration: 820, easing: 'cubic-bezier(.3,0,.2,1)', fill: 'both' };
+      const outgoingMotion = outgoing.animate([
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateX(' + -direction * 110 + '%)', opacity: .65 }
+      ], options);
+      const incomingMotion = incoming.animate([
+        { transform: 'translateX(' + direction * 110 + '%)', opacity: .65 },
+        { transform: 'translateX(0)', opacity: 1 }
+      ], options);
+      const heightMotion = stage.animate([{ height: oldHeight + 'px' }, { height: newHeight + 'px' }], options);
+      const cleanup = () => {
+        outgoingMotion.cancel(); incomingMotion.cancel(); heightMotion.cancel();
+        stage.classList.remove('is-swiping'); stage.style.height = '';
+        main.inert = false;
+        casePanels.forEach(panel => { panel.hidden = panel.dataset.case !== view; });
+      };
+      caseSwipe = { cancel: cleanup };
+      setTimeout(() => {
+        if (id !== swipeId) return;
+        cleanup(); caseSwipe = null; finish();
+      }, options.duration + 20);
+      return;
+    }
     if (addHistory && location.hash !== `#${next}`) history.pushState({ view: next }, '', `#${next}`);
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (holeEvent.active) {
       holeEvent.active = false; trapHole.hide(); voiceLayer.replaceChildren();
       [...characters, ...audience].forEach(c => { c.root.visible = true; c.root.scale.setScalar(1); });
@@ -597,19 +825,57 @@ async function init() {
     if (paused || reduced.matches) { viewTransition = null; applyView(next); speech.setVisible(true); announcement.textContent = next === 'about' ? 'About and contact' : 'Projects'; return; }
     speech.bubbles.forEach(bubble => { bubble.age = 10; }); speech.setVisible(false);
     mishap.type = null; dangerButton.hidden = true;
+    const caseJourney = isCase(next) || isCase(view);
+    sceneSide = next === 'about' ? 1 : caseJourney ? -1 : 1;
+    main.classList.toggle('is-case-travel', caseJourney);
+    playground.hidden = false;
     main.classList.add('is-traveling');
-    viewTransition = { to: next, started: performance.now(), welcomed: false };
-    workLayer.visible = true;
-    if (next === 'about') loadJoel().then(() => {
-      if (viewTransition?.to === 'about' && !viewTransition.welcomed) viewTransition.welcomed = waveJoel();
-    });
-    if (joel) joel.root.visible = true;
+    const lowering = isCase(view) && !isCase(next);
+    const toPan = next === 'about' ? (isCase(view) ? -CAMERA_TRAVEL * 2 : CAMERA_TRAVEL)
+      : view === 'about' && next === 'work' ? (scenePan < 0 ? -CAMERA_TRAVEL * 3 : 0)
+      : view === 'about' && isCase(next) && scenePan > 0 ? CAMERA_TRAVEL * 2 : sceneLocation(next);
+    workLayer.position.x = next === 'work' ? toPan : 0;
+    viewTransition = { to: next, lowering, fromPan: scenePan, toPan, direction: Math.sign(toPan - scenePan) || -1, fromProgress: sceneProgress, started: performance.now(), welcomed: false, revealed: false };
+    playground.style.setProperty('--about-entry-side', next === 'about' ? viewTransition.direction : -viewTransition.direction);
+    workLayer.visible = !lowering;
+    if (lowering) {
+      main.classList.add('is-lowering');
+      document.querySelector('.crew-commentary').hidden = true;
+      const panel = caseFor(view);
+      panel.classList.add('is-transition-arriving');
+      const fullHeight = parseFloat(playground.style.getPropertyValue('--crew-scene-height')) || 420;
+      const stripHeight = playground.getBoundingClientRect().height;
+      const top = parseFloat(playground.style.getPropertyValue('--crew-scene-offset')) || -178;
+      const stripWidth = playground.getBoundingClientRect().width;
+      const stageHeight = host.getBoundingClientRect().height;
+      let expandedHeight = fullHeight, expandedWidth = stripWidth, expandedStageHeight = stageHeight;
+      if (next === 'about') {
+        const previousView = main.dataset.view;
+        main.dataset.casePage = 'false'; main.dataset.view = 'about';
+        const expanded = playground.getBoundingClientRect();
+        expandedHeight = expanded.height; expandedWidth = expanded.width;
+        expandedStageHeight = host.getBoundingClientRect().height;
+        main.dataset.casePage = 'true'; main.dataset.view = previousView;
+      }
+      const lowerOptions = { duration: 1350, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' };
+      const motions = [
+        panel.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(75vh)' }], lowerOptions),
+        playground.animate([{ height: stripHeight + 'px', width: stripWidth + 'px' }, { height: expandedHeight + 'px', width: expandedWidth + 'px' }], lowerOptions),
+        host.animate([{ top: top + 'px', height: stageHeight + 'px' }, { top: '0px', height: expandedStageHeight + 'px' }], lowerOptions)
+      ];
+      if (next === 'about') viewTransition.lowerMotions = motions;
+      else setTimeout(() => motions.forEach(motion => motion.cancel()), 1360);
+    }
+    if (next === 'about') loadJoel();
+    if (next === 'about') document.querySelector('.about-scenery-word').textContent = 'meet joel';
+    if (joel) joel.root.visible = next === 'about' ? !lowering : view === 'about';
     if (view === 'about' && next === 'work') waveJoel();
   }
-  document.querySelectorAll('a[href="#work"],a[href="#about"]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.hash.slice(1)); }));
-  window.addEventListener('popstate', () => navigate(location.hash === '#about' ? 'about' : 'work', false));
-  window.addEventListener('hashchange', () => navigate(location.hash === '#about' ? 'about' : 'work', false));
-  loadJoel(); // Fetch Joel ahead of time, so switching scenes never waits on him.
+  document.querySelectorAll(['work', 'about', ...caseOrder].map(route => `a[href="#${route}"]`).join(',')).forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.hash.slice(1), true, link.dataset.caseDirection ? Number(link.dataset.caseDirection) : null); }));
+  window.addEventListener('popstate', () => navigate(route(), false));
+  window.addEventListener('hashchange', () => navigate(route(), false));
+  document.querySelector('.crew-commentary button').addEventListener('click', () => { document.querySelector('.crew-commentary').hidden = true; });
+  const initialJoelLoad = loadJoel(); // Fetch Joel ahead of time, so switching scenes never waits on him.
   const holeLines = ['It said not to press!', 'Do you not believe in Chonkimal rights?', 'Ouch.', 'This was not in the risk assessment.', 'Tell Joel we tried.'];
   dangerButton.addEventListener('click', () => {
     if (holeEvent.active) return;
@@ -656,21 +922,24 @@ async function init() {
   });
   [...characters, ...audience].forEach(c => maskBelowGround(c.root));
   document.querySelector('#loading').hidden = true; dangerButton.hidden = false;
-  if (location.hash === '#about') { elapsed = Math.max(elapsed, 7); applyView('about'); window.scrollTo(0, 0); }
+  if (route() !== 'work') { elapsed = Math.max(elapsed, 7); applyView(route()); window.scrollTo({ top: 0, behavior: 'instant' }); }
   let layout = layoutMix(), wide = wideMix();
   function resize() {
     const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h;
     layout = layoutMix(); wide = wideMix();
     cart.scale.setScalar(THREE.MathUtils.lerp(.86, 1, layout));
-    camera.updateProjectionMatrix(); setSceneProgress(sceneProgress); worksite.resize(layout, wide);
+    camera.updateProjectionMatrix(); setSceneProgress(sceneProgress, scenePan, sceneryProgress); worksite.resize(layout, wide);
   }
-  new ResizeObserver(resize).observe(host); resize();
+  // Resizing clears WebGL's drawing buffer. Do it just before the next render,
+  // rather than in ResizeObserver after a frame has already been drawn.
+  let sceneResizePending = false;
+  new ResizeObserver(() => { sceneResizePending = true; }).observe(host); resize();
   if (view === 'work') say('0', lines[0][0]);
   const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
   function hit(event) { const r = renderer.domElement.getBoundingClientRect(); pointer.set((event.clientX - r.left) / r.width * 2 - 1, -(event.clientY - r.top) / r.height * 2 + 1); raycaster.setFromCamera(pointer, camera); const main = characters.findIndex(c => raycaster.intersectObject(c.root, true).length); if (main >= 0) return { type: 'main', index: main }; const guest = audience.findIndex(c => raycaster.intersectObject(c.root, true).length); if (guest >= 0) return { type: 'guest', index: guest }; if (view === 'about' && joel && raycaster.intersectObject(joel.root, true).length) return { type: 'joel' }; if (view !== 'work' || viewTransition) return null; const prop = worksite.hit(raycaster); if (prop) return { type: 'prop', name: prop }; if (cartScreen && raycaster.intersectObject(cartScreen).length) return { type: 'screen' }; return null; }
   function react(target, announce = false) {
     if (holeEvent.active) return;
-    if (!target) return; if (target.type === 'screen') { if (announce && (projects[selected].video || projects[selected].play)) watchClip.click(); else if (announce) showProject(selected + 1, true); return; }
+    if (!target) return; if (target.type === 'screen') { if (announce && (projects[selected].video || projects[selected].play)) watchClip.click(); else if (announce) browseProject(1, true); return; }
     const quietAbout = view === 'about' && !viewTransition;
     if (target.type === 'joel') {
       const now = performance.now(); if (now - (announce ? joel.lastClick : joel.lastHover) < (announce ? 450 : 1800)) return;
@@ -708,22 +977,48 @@ async function init() {
   renderer.domElement.addEventListener('pointerleave', () => { hovered = ''; renderer.domElement.style.cursor = 'default'; });
   renderer.domElement.addEventListener('click', event => react(hit(event), true));
   const clock = new THREE.Clock(); let lastLine = 0, guestLine = false;
+  let openingReady = false;
+  Promise.all([openingVisuals, initialJoelLoad]).then(() => { openingReady = true; });
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), .04); if (document.hidden) return;
+    if (sceneResizePending) { sceneResizePending = false; resize(); }
     if (!paused) elapsed += dt;
     let runOffset = 0;
     if (viewTransition) {
       const age = (performance.now() - viewTransition.started) / 1000;
-      const total = 2.35;
-      const t = Math.min(1, age / total), smooth = t * t * (3 - 2 * t);
-      setSceneProgress(viewTransition.to === 'about' ? smooth : 1 - smooth);
-      runOffset = Math.sin(Math.PI * t) * (viewTransition.to === 'about' ? .45 : -.45);
+      const raisingCase = isCase(viewTransition.to);
+      const arrivingAbout = viewTransition.to === 'about';
+      const lowerDuration = viewTransition.lowering ? 1.35 : 0;
+      const travelDuration = arrivingAbout ? 2.35 : raisingCase || viewTransition.lowering ? 1.2 : 2.35;
+      const total = arrivingAbout ? lowerDuration + travelDuration : raisingCase || viewTransition.lowering ? 2.95 : 2.35;
+      const t = Math.min(1, Math.max(0, age - lowerDuration) / travelDuration), smooth = t * t * (3 - 2 * t);
+      if (arrivingAbout && viewTransition.lowering && age >= lowerDuration && !viewTransition.lowered) {
+        viewTransition.lowered = true;
+        caseFor(view).hidden = true;
+        main.dataset.casePage = 'false';
+        main.dataset.view = 'about';
+        main.classList.remove('is-lowering', 'is-case-travel');
+        viewTransition.lowerMotions?.forEach(motion => motion.cancel());
+        workLayer.visible = false;
+        if (joel) joel.root.visible = true;
+      }
+      if (arrivingAbout && t >= .84 && joel && !viewTransition.welcomed) {
+        joel.root.visible = true;
+        viewTransition.welcomed = waveJoel();
+      }
+      setSceneProgress(THREE.MathUtils.lerp(viewTransition.fromProgress, viewTransition.to !== 'work' ? 1 : 0, smooth), THREE.MathUtils.lerp(viewTransition.fromPan, viewTransition.toPan, smooth), arrivingAbout && viewTransition.lowering ? smooth : THREE.MathUtils.lerp(viewTransition.fromProgress, viewTransition.to !== 'work' ? 1 : 0, smooth));
+      runOffset = Math.sin(Math.PI * t) * .45 * viewTransition.direction;
+      if (age >= (arrivingAbout ? lowerDuration + 1.05 : raisingCase ? 1.6 : viewTransition.lowering ? 1.35 : 1.05) && !viewTransition.revealed) {
+        viewTransition.revealed = true;
+        revealIncoming(viewTransition.to);
+      }
       if (age >= total) {
-        const arrived = viewTransition.to, welcomed = viewTransition.welcomed;
-        viewTransition = null; applyView(arrived); main.classList.remove('is-traveling'); speech.setVisible(true); lastLine = elapsed;
+        const arrived = viewTransition.to, welcomed = viewTransition.welcomed, revealed = viewTransition.revealed;
+        viewTransition = null; applyView(arrived, revealed); main.classList.remove('is-traveling'); speech.setVisible(true); lastLine = elapsed;
         if (arrived === 'about' && !welcomed) loadJoel().then(() => { if (view === 'about') waveJoel(); });
         if (arrived === 'work') say('1', 'Back to the slides!');
-        announcement.textContent = arrived === 'about' ? 'About and contact' : 'Projects';
+
+        announcement.textContent = isCase(arrived) ? projects.find(project => project.kind === caseKinds[arrived]).title + ' case study' : arrived === 'about' ? 'About and contact' : 'Projects';
       }
     }
     if (!paused && view === 'work' && !viewTransition && !holeEvent.active && !mishap.type && elapsed >= mishap.nextAt) {
@@ -748,7 +1043,7 @@ async function init() {
       const aboutHome = THREE.MathUtils.lerp([-2.65, 0, 2.65][i], [-4.35, 0, 4.35][i], layout);
       const home = THREE.MathUtils.lerp(workHome, aboutHome, sceneProgress);
       if (i === 1) c.root.position.x = home + THREE.MathUtils.lerp(6, 9, layout) * (1 - eased); else c.root.position.x = home;
-      c.root.position.x += sceneProgress * CAMERA_TRAVEL;
+      c.root.position.x += scenePan;
       c.root.position.x += runOffset;
       c.root.position.z = i === 1 ? -.2 : -.65;
       if (!paused) {
@@ -770,7 +1065,7 @@ async function init() {
       const watchYaw = i === 0 ? .96 : -1.05;
       c.root.rotation.set(0, firstYaw + (watchYaw - firstYaw) * watching, 0);
       if (view === 'about' && !viewTransition) c.root.rotation.y = [-.35, 0, .35][i];
-      if (viewTransition) c.root.rotation.y = viewTransition.to === 'about' ? Math.PI / 2 : -Math.PI / 2;
+      if (viewTransition) c.root.rotation.y = Math.PI / 2 * viewTransition.direction;
       if (c.reaction < 1.2) {
         const p = c.reaction / 1.2;
         if (c.reactionKind === 'poke') {
@@ -803,15 +1098,15 @@ async function init() {
         if (welcome > 0 && welcome < .8) c.root.rotation.z += (i === 2 ? -1 : 1) * Math.sin(Math.PI * welcome / .8) * .16;
       }
       const presenting = i === 1 && c.hasGreeting && slideCueManual && slidePulse > 0;
-      const state = viewTransition ? 'running' : presenting ? 'greeting' : i === 1 && move < 1 ? 'walking' : placingTape ? 'running' : jumping ? t < .4 ? 'jumping_up' : t < .85 ? 'falling_idle' : 'hard_landing' : c.idleOptions[c.idleIndex];
+      const state = viewTransition ? ((main.classList.contains('is-hoisting') || main.classList.contains('is-lowering') || (isCase(viewTransition.to) && (performance.now() - viewTransition.started) > 1200)) ? (c.hasGreeting ? 'greeting' : c.idleOptions[c.idleIndex]) : 'running') : presenting ? 'greeting' : i === 1 && move < 1 ? 'walking' : placingTape ? 'running' : jumping ? t < .4 ? 'jumping_up' : t < .85 ? 'falling_idle' : 'hard_landing' : c.idleOptions[c.idleIndex];
       if (!paused) c.actor.update(dt, state === 'running' && !c.hasRun ? c.hasWalk ? 'walking' : 'idle' : state === 'walking' && !c.hasWalk ? 'idle' : state);
     });
     audience.forEach((c, i) => {
       const start = 2.8 + i * .65, progress = Math.min(1, Math.max(0, (elapsed - start) / 2.1)), ease = 1 - (1 - progress) ** 3;
       const home = (i - 1) * THREE.MathUtils.lerp(1.15, 1.5, layout);
-      c.root.position.set(home + (i % 2 ? 1 : -1) * THREE.MathUtils.lerp(5, 9, layout) * (1 - ease) + sceneProgress * CAMERA_TRAVEL + runOffset, Math.sin(elapsed * 3 + i) * .025, THREE.MathUtils.lerp(2.7, 1.35, layout));
+      c.root.position.set(home + (i % 2 ? 1 : -1) * THREE.MathUtils.lerp(5, 9, layout) * (1 - ease) + scenePan + runOffset, Math.sin(elapsed * 3 + i) * .025, THREE.MathUtils.lerp(2.7, 1.35, layout));
       const turn = Math.min(1, Math.max(0, (elapsed - start - 1.25) / 1.45));
-      c.root.rotation.y = viewTransition ? viewTransition.to === 'about' ? Math.PI / 2 : -Math.PI / 2 : view === 'about' ? [-.15, 0, .15][i] : [2.45, Math.PI, 3.82][i] * turn + Math.sin(elapsed * .65 + i) * .07;
+      c.root.rotation.y = viewTransition ? Math.PI / 2 * viewTransition.direction : view === 'about' ? [-.15, 0, .15][i] : [2.45, Math.PI, 3.82][i] * turn + Math.sin(elapsed * .65 + i) * .07;
       c.root.rotation.z = c.reaction < 1 ? (i % 2 ? 1 : -1) * Math.sin(Math.PI * c.reaction) ** 2 * .52 : 0;
       if (slideCueManual && slidePulse) c.root.rotation.z += (i % 2 ? -1 : 1) * slidePulse * .09;
       if (!paused && view === 'about' && !viewTransition) {
@@ -835,7 +1130,8 @@ async function init() {
       }
     });
     if (joel) {
-      joel.root.position.set(CAMERA_TRAVEL + THREE.MathUtils.lerp(-1.65, -2.15, layout), 0, -.65);
+      const joelScene = viewTransition?.to === 'about' ? viewTransition.toPan : viewTransition && view === 'about' ? viewTransition.fromPan : scenePan;
+      joel.root.position.set(joelScene + THREE.MathUtils.lerp(-1.65, -2.15, layout), 0, -.65);
       joel.root.rotation.y = -.12;
       if (!paused && (view === 'about' || viewTransition)) joel.mixer.update(dt);
     }
@@ -911,14 +1207,19 @@ async function init() {
         }
       }
       const dustAge = (performance.now() - c.hatLandedAt) / 850;
-      c.dust.update(viewTransition.to === 'about' ? dustAge : -1, hatGroundPosition(index));
+      c.dust.update(viewTransition.to !== 'work' ? dustAge : -1, hatGroundPosition(index));
     });
     if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
-    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) showProject(selected + 1); }
+    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) browseProject(1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
     updateSlideVideo(view === 'work' && !viewTransition && !paused && !document.hidden && !isProjectPlayerOpen());
     speech.update(paused ? 0 : dt, camera, (key, out) => { if (key === 'joel') { if (!joel || !joel.root.visible) return false; out.set(joel.root.position.x, JOEL_HEIGHT + .3, joel.root.position.z); return true; } if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
     renderer.render(scene, camera);
+    if (openingReady) { openingReady = false; window.finishSiteSplash?.(); }
   });
 }
-init().catch(error => { console.error(error); document.querySelector('#loading').textContent = 'Our little friends are taking a breather. Their references are still excellent.'; });
+init().catch(error => {
+  console.error(error);
+  document.querySelector('#loading').textContent = 'Our little friends are taking a breather. Their references are still excellent.';
+  window.finishSiteSplash?.();
+});

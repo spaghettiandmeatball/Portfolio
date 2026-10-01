@@ -54,13 +54,20 @@ export function isProjectPlayerOpen() {
 }
 
 export function openProjectPlayer(project) {
-  if (!(project.embed || project.play) || dialog.open) return;
+  if (!(project.embed || project.play || project.localVideo) || dialog.open) return;
   title.textContent = project.title;
   source.parentElement.hidden = !!project.play;
   if (project.video) source.href = project.video;
-  dialog.classList.toggle('is-game', !!project.play);
-  fullscreenButton.hidden = !project.play;
+  dialog.classList.toggle('is-game', !!(project.play || project.localVideo));
+  fullscreenButton.hidden = !(project.play || project.localVideo);
   setExpanded(false);
+  if (project.localVideo) {
+    const video = document.createElement('video');
+    video.src = project.localVideo;
+    video.controls = true; video.playsInline = true; video.autoplay = true;
+    video.setAttribute('aria-label', project.title + ' video');
+    content.replaceChildren(video);
+  } else {
   const frame = document.createElement('iframe');
   frame.title = `${project.title} — ${project.play ? 'playable game' : 'project video'}`;
   frame.src = project.play || project.embed;
@@ -68,6 +75,7 @@ export function openProjectPlayer(project) {
   frame.allowFullscreen = true;
   frame.referrerPolicy = 'strict-origin-when-cross-origin';
   content.replaceChildren(frame);
+  }
   dialog.showModal();
   document.body.classList.add('player-open');
 }
@@ -80,6 +88,7 @@ dialog.addEventListener('click', event => {
 });
 dialog.addEventListener('close', () => {
   void leaveFullscreen();
+  content.querySelectorAll('video').forEach(video => video.pause());
   content.replaceChildren();
   document.body.classList.remove('player-open');
 });

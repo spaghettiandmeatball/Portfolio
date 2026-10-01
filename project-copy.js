@@ -1,20 +1,19 @@
 export const projectCopy = {
   wordometer: {
     lead: 'A daily word-association puzzle for the time between WWF moves.',
-    overview: 'Guess the hidden word, follow an AI-powered similarity meter, and use hints to find your way. Created for the Zynga 2025 Hackathon as a quick, shareable addition to Words With Friends.',
+    overview: 'I designed a daily word-association experience for Zynga Hackathon 2025: guess the hidden word, follow an AI-powered similarity meter, and use hints to find your way. My goal was a quick, shareable addition to Words With Friends.',
     summary: 'Explore the concept',
     details: [
       ['How it plays', 'The original concept allowed 20 guesses, with clues from the meter and optional hints. The playable prototype allows 25.'],
       ['Why word association', 'Games like NYT Connections suggested an appetite for a daily challenge that filled a gap in WWF’s lineup. Shareable scores were part of the concept.'],
       ['AI prototyping', 'One of Zynga’s first projects to use AI-assisted development for prototyping, using a lightweight, open-source model.'],
-      ['Path to production', 'We explored reusing WWF’s word-validation system and AI-supported puzzle generation in other languages.'],
+      ['Path to production', 'I explored reusing WWF’s word-validation system and AI-supported puzzle generation in other languages.'],
       ['Business opportunities', 'Sponsorships, coin-funded hints and powerups, completion ads, and daily puzzle progression were explored as ways to support revenue and return play.'],
     ],
-    note: 'First play downloads an AI model and needs an internet connection.',
   },
   dice: {
     lead: 'A fast-paced, push-your-luck twist on Words With Friends.',
-    overview: 'WWF’s first permanent PvP mode since Classic swaps tiles for letter dice. Roll, re-roll, and chase stronger words in a lively break from the pace of traditional matches.',
+    overview: 'I designed the UI/UX for WWF’s first permanent PvP mode since Classic, swapping tiles for letter dice. Roll, re-roll, and chase stronger words in a lively break from the pace of traditional matches.',
     summary: 'Explore the mode',
     details: [
       ['Push your luck', 'Roll and re-roll letter dice to find stronger words.'],
@@ -24,7 +23,7 @@ export const projectCopy = {
   },
   letters: {
     lead: 'A bite-sized daily puzzle with a tactile twist on wordplay.',
-    overview: 'We set out to give Words With Friends players a fresh challenge they could pick up each day and share, with satisfying mechanics that reward strategic thinking.',
+    overview: 'I designed the UI/UX to give Words With Friends players a fresh challenge they could pick up each day and share, with satisfying mechanics that reward strategic thinking.',
     summary: 'Explore the design goals',
     details: [
       ['Daily play', 'A short, puzzle-forward experience built for a daily ritual.'],
@@ -34,7 +33,7 @@ export const projectCopy = {
   },
   breeding: {
     lead: 'New purpose for dragons. New ways to grow a collection.',
-    overview: 'Dragon Breeding brings together Soul Crystals, elemental breeding, and Dragon Ranks. I worked alongside my lead on UX/UI, designing in Figma and implementing in Unity.',
+    overview: 'I designed and built the UI/UX for Dragon Breeding, bringing together Soul Crystals, elemental breeding, and Dragon Ranks.',
     summary: 'Explore the feature and my contributions',
     details: [
       ['Breeding system', 'Two Soul Crystal chains and a mechanic that combines a crystal with two dragons to create a new dragon.'],
@@ -45,7 +44,7 @@ export const projectCopy = {
   },
   ftue: {
     lead: 'A clearer path from first steps to a first Camp Wonder.',
-    overview: 'Starter Quests and FTUE improvements were designed together to guide players through key mechanics. I led UI/UX across both, using Figma and Unity to make early progression more intuitive and rewarding.',
+    overview: 'I designed and built the UI/UX for Starter Quests and FTUE improvements together, guiding players through key mechanics and making early progression more intuitive and rewarding.',
     summary: 'Explore the onboarding improvements',
     details: [
       ['Starter Quests', 'A structured progression path, updated HUD, new quest modal, and “Find in Camp” feature.'],
@@ -56,7 +55,7 @@ export const projectCopy = {
   },
   book: {
     lead: 'One home for discovering and growing a dragon collection.',
-    overview: 'Discovery Book united Dragon Book and New Discoveries in Merge Dragons!, making it easier to explore a collection and see what comes next.',
+    overview: 'I designed and built the Discovery Book UI/UX, uniting Dragon Book and New Discoveries in Merge Dragons! to make it easier to explore a collection and see what comes next.',
     summary: 'Explore the collection experience',
     details: [
       ['One system', 'View, manage, and merge dragons in a unified collection experience.'],
