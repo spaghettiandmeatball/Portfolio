@@ -1,5 +1,6 @@
 # Dependencies & Environment
 node_modules/
+tools/font-runtime/
 .env
 .env.*
 

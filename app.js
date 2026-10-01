@@ -1,20 +1,17 @@
-import * as THREE from 'three';
-import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { createCharacter } from './chonkimals/player.js';
-import { SpeechBubbles } from './chonkimals/speech-bubbles.js';
-import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=f50ded3c0037';
+let THREE, GLTFLoader, createCharacter, SpeechBubbles;
+import { openProjectPlayer, isProjectPlayerOpen } from './project-player.js?v=28cee2f51cab';
 import { projectCopy } from './project-copy.js?v=b810d130723e';
 
 const projects = [
   { group: 'Zynga Hackathon 2026', title: 'Chonkimals', kind: 'chonkimals', play: './play/chonkimals/' },
   { group: 'Zynga Hackathon 2025', title: 'Word-O-Meter', kind: 'wordometer', play: './play/word-o-meter/' },
   { group: 'Words With Friends', title: 'Dice Challenge', kind: 'dice', video: 'https://www.youtube.com/shorts/Y0ORyzqeXgM', embed: 'https://www.youtube-nocookie.com/embed/Y0ORyzqeXgM?autoplay=1&playsinline=1&rel=0' },
-  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'project-letter-lock.png', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube-nocookie.com/embed/DIEdCnECGjg?autoplay=1&playsinline=1&rel=0' },
+  { group: 'Words With Friends', title: 'Letter Lock', kind: 'letters', image: 'optimized/project-letter-lock.webp', video: 'https://www.youtube.com/shorts/DIEdCnECGjg', embed: 'https://www.youtube-nocookie.com/embed/DIEdCnECGjg?autoplay=1&playsinline=1&rel=0' },
   { group: 'Words With Friends', title: 'Gold Word', kind: 'gold', video: 'https://www.instagram.com/reels/DdUcDmelR2F/', localVideo: './assets/videos/gold-word.mp4' },
   { group: 'Words With Friends', title: 'Bonus Pass', kind: 'pass' },
-  { group: 'Merge Dragons', title: 'Dragon Breeding', kind: 'breeding', image: 'project-dragon-breeding.png' },
-  { group: 'Merge Dragons', title: 'A Better Beginning', kind: 'ftue', image: 'project-ftue.png' },
-  { group: 'Merge Dragons', title: 'Discovery Book', kind: 'book', image: 'project-dragon-book.png' },
+  { group: 'Merge Dragons', title: 'Dragon Breeding', kind: 'breeding', image: 'optimized/project-dragon-breeding.webp' },
+  { group: 'Merge Dragons', title: 'A Better Beginning', kind: 'ftue', image: 'optimized/project-ftue.webp' },
+  { group: 'Merge Dragons', title: 'Discovery Book', kind: 'book', image: 'optimized/project-dragon-book.webp' },
 ];
 // Shuffle once per visit; selecting a named project restores the curated sequence.
 const defaultProjectOrder = [2, 3, 6, 7, 8, 4, 5, 0, 1];
@@ -50,6 +47,7 @@ const guestPokeLines = ['I just got here!', 'I was told this was a safe viewing 
 const propLines = { hole: ['This is an important hole.', 'The hole has excellent growth potential.'], shovel: ['This is my senior shovel.', 'I put it on my résumé.'], toolbox: ['The toolbox is mostly snacks.', 'Please return all borrowed snacks.'] };
 const propCounts = { hole: 0, shovel: 0, toolbox: 0 };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+const phoneLayout = matchMedia('(max-width: 760px)');
 const animationVideos = [...document.querySelectorAll('.case-animation video')];
 const animationVisibility = new WeakMap();
 const animationPaused = new WeakSet();
@@ -85,15 +83,15 @@ const autoplayButton = document.querySelector('#autoplay');
 const autoplayProgress = document.querySelector('#autoplay-progress');
 const announcement = document.querySelector('#announcement');
 let paused = reduced.matches;
-let autoplay = !reduced.matches;
+let autoplay = !reduced.matches && !phoneLayout.matches;
 let projectElapsed = 0;
 let slideWobble = 0;
 let slideCueAt = -Infinity, slideCueManual = false;
 const PROJECT_DURATION = 7;
-let speech, characters = [], audience = [], cart, cartScreen, elapsed = reduced.matches ? 7 : 0, selected = 0, showing = 0;
+let speech, characters = [], audience = [], cart, cartScreen, elapsed = 7, selected = 0, showing = 0;
 let slideTexture, slideCanvas, slideContext, chonkimalsImage;
 const projectImages = new Map();
-const slideVideo = document.createElement('video');
+let slideVideo = document.createElement('video');
 slideVideo.id = 'presentation-video';
 slideVideo.muted = true;
 slideVideo.defaultMuted = true;
@@ -103,7 +101,39 @@ slideVideo.preload = 'metadata';
 slideVideo.hidden = true;
 slideVideo.setAttribute('aria-hidden', 'true');
 document.body.appendChild(slideVideo);
-const slideClips = { chonkimals: './assets/videos/chonkimals-trailer.mp4', dice: './assets/videos/dice-challenge.mp4', letters: './assets/videos/letter-lock.mp4', gold: './assets/videos/gold-word.mp4' };
+const fullSlideClips = { chonkimals: './assets/videos/chonkimals-trailer.mp4', dice: './assets/videos/dice-challenge.mp4', letters: './assets/videos/letter-lock.mp4', gold: './assets/videos/gold-word.mp4' };
+const slideClips = Object.fromEntries(Object.keys(fullSlideClips).map(kind => [kind, `./assets/videos/previews/${kind}.mp4`]));
+let previewSource = '', fullClip = null, fullClipTimer = null, clipGeneration = 0;
+function releaseVideo(video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+function queueFullClip() {
+  if (fullClip || fullClipTimer || !previewSource || navigator.connection?.saveData) return;
+  const generation = clipGeneration, project = projects[selected];
+  fullClipTimer = setTimeout(() => {
+    fullClipTimer = null;
+    if (generation !== clipGeneration) return;
+    const video = document.createElement('video');
+    fullClip = video;
+    video.preload = 'auto'; video.muted = true; video.loop = true; video.playsInline = true; video.hidden = true;
+    video.setAttribute('aria-hidden', 'true');
+    video.addEventListener('canplaythrough', () => {
+      if (generation !== clipGeneration || fullClip !== video) return;
+      const old = slideVideo;
+      const takeOver = () => {
+        if (generation !== clipGeneration || fullClip !== video) return;
+        video.muted = old.muted;
+        old.removeAttribute('id'); video.id = 'presentation-video';
+        slideVideo = video; fullClip = null;
+        slidePlaybackWanted = false; lastVideoTime = -1;
+        releaseVideo(old); drawSlide();
+      };
+      const position = Number.isFinite(video.duration) ? old.currentTime % video.duration : 0;
+      if (position > .03) { video.addEventListener('seeked', takeOver, { once: true }); video.currentTime = position; }
+      else takeOver();
+    }, { once: true });
+    video.src = fullSlideClips[project.kind];
+    document.body.appendChild(video); video.load();
+  }, 2000);
+}
 const trailerPoster = new Image();
 trailerPoster.onload = drawSlide;
 trailerPoster.src = './assets/chonkimals-trailer-poster.jpg';
@@ -122,6 +152,9 @@ previewSound.addEventListener('click', () => {
 let slidePlaybackWanted = false, lastVideoTime = -1;
 slideVideo.addEventListener('loadeddata', drawSlide);
 function selectSlideVideo(project) {
+  ++clipGeneration;
+  clearTimeout(fullClipTimer); fullClipTimer = null;
+  if (fullClip) { releaseVideo(fullClip); fullClip = null; }
   slideVideo.pause();
   slidePlaybackWanted = false;
   lastVideoTime = -1;
@@ -129,15 +162,19 @@ function selectSlideVideo(project) {
   slideVideo.muted = true;
   previewSound.hidden = !source;
   updatePreviewSound();
-  if (source) slideVideo.src = source;
-  else slideVideo.removeAttribute('src');
+  previewSource = source || '';
+  slideVideo.removeAttribute('src');
   slideVideo.load();
 }
 function updateSlideVideo(active) {
   const wanted = active && !!slideClips[projects[selected].kind];
   if (wanted !== slidePlaybackWanted) {
     slidePlaybackWanted = wanted;
-    if (wanted) slideVideo.play().catch(() => { /* Keep the static preview if autoplay is blocked. */ });
+    if (wanted) {
+      if (!slideVideo.getAttribute('src')) { slideVideo.src = previewSource; slideVideo.load(); }
+      slideVideo.play().catch(() => { /* Keep the static preview if autoplay is blocked. */ });
+      if (slideVideo.getAttribute('src') === previewSource) queueFullClip();
+    }
     else slideVideo.pause();
   }
   if (wanted && slideVideo.readyState >= 2 && slideVideo.currentTime !== lastVideoTime) {
@@ -149,28 +186,25 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { slideVideo.pause(); slidePlaybackWanted = false; }
 });
 function getProjectImage(project) {
-  if (!project.image) return null;
-  if (!projectImages.has(project.image)) {
+  const asset = project.image || (slideClips[project.kind] ? `videos/previews/${project.kind}.jpg` : '');
+  if (!asset) return null;
+  if (!projectImages.has(asset)) {
     const image = new Image();
     image.onload = () => { if (projects[selected] === project) drawSlide(); };
-    image.src = `./assets/${project.image}`;
-    projectImages.set(project.image, image);
+    image.src = `./assets/${asset}`;
+    projectImages.set(asset, image);
   }
-  const image = projectImages.get(project.image);
+  const image = projectImages.get(asset);
   return image.complete && image.naturalWidth ? image : null;
 }
 function say(key, line) { if (!speech) return; speech.bubbles.forEach(b => { b.age = 10; }); speech.show(key, line); }
-const shot = new Image(); shot.src = './assets/chonkimals-preview.png';
-shot.onload = () => { chonkimalsImage = shot; drawSlide(); };
-const openingVisuals = Promise.allSettled([
-  document.fonts.load('600 108px Fredoka').then(drawSlide),
-  shot.decode(),
-]);
+const openingVisuals = document.fonts.load('600 108px Fredoka').then(drawSlide);
 const projectButtons = [...document.querySelectorAll('[data-project]')];
 const watchClip = document.querySelector('#watch-clip');
 watchClip.addEventListener('click', () => { projectElapsed = 0; openProjectPlayer(projects[selected]); });
 
-reduced.addEventListener('change', e => { paused = e.matches; autoplay = !e.matches; if (e.matches) elapsed = Math.max(elapsed, 7); updateAutoplay(); });
+reduced.addEventListener('change', e => { paused = e.matches; autoplay = !e.matches && !phoneLayout.matches; if (e.matches) elapsed = Math.max(elapsed, 7); updateAutoplay(); });
+phoneLayout.addEventListener('change', () => { if (phoneLayout.matches) { autoplay = false; updateAutoplay(); } });
 function updateAutoplay() {
   autoplayButton.innerHTML = `<span class="autoplay-icon" aria-hidden="true">${autoplay ? 'Ⅱ' : '▶'}</span> ${autoplay ? 'Pause autoplay' : 'Play autoplay'}`;
   autoplayButton.setAttribute('aria-pressed', String(autoplay));
@@ -216,6 +250,12 @@ function showProject(index, announce = false, travelDirection) {
   }
   selected = next;
   const project = projects[selected];
+  const poster = document.querySelector('#scene-poster');
+  const posterSource = project.image ? `./assets/${project.image}` : slideClips[project.kind] ? `./assets/videos/previews/${project.kind}.jpg` : '';
+  poster.hidden = !posterSource;
+  if (posterSource) { poster.src = posterSource; poster.alt = `${project.title} preview`; }
+  else poster.removeAttribute('src');
+  document.querySelector('#scene-placeholder-title').textContent = project.title;
   selectSlideVideo(project);
   const detailRoutes = { dice: 'dice-challenge', letters: 'letter-lock', breeding: 'dragon-breeding', ftue: 'onboarding', book: 'discovery-book' };
   document.querySelector('#project-details-link').hidden = !detailRoutes[project.kind];
@@ -277,6 +317,50 @@ document.querySelector('#next-project').addEventListener('click', () => browsePr
 document.querySelector('#coming-next').addEventListener('click', () => browseProject(1, true));
 projectButtons.forEach(button => button.addEventListener('click', () => selectProject(Number(button.dataset.project))));
 showProject(projectOrder[0]);
+// Let the project UI work while the larger 3D modules and models arrive.
+let earlyNavigation = true;
+const initialCrewHeight = document.querySelector('.playground').getBoundingClientRect().height;
+function showEarlyRoute() {
+  if (!earlyNavigation) return;
+  const cases = { 'dice-challenge': 'dice', 'letter-lock': 'letters', 'dragon-breeding': 'breeding', onboarding: 'ftue', 'discovery-book': 'book' };
+  const hash = location.hash.slice(1);
+  const next = cases[hash] || hash === 'about' ? hash : 'work';
+  const main = document.querySelector('main'), playground = document.querySelector('.playground');
+  main.dataset.view = next; main.dataset.casePage = String(!!cases[next]);
+  document.querySelector('.preview').hidden = next !== 'work';
+  document.querySelector('.intro-work').hidden = next !== 'work';
+  document.querySelector('.about-panel').hidden = next !== 'about';
+  document.querySelectorAll('.case-panel').forEach(panel => { panel.hidden = panel.dataset.case !== next; });
+  document.querySelectorAll('.site-nav a').forEach(link => { if (link.hash === '#' + next) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); });
+  if (cases[next]) {
+    playground.style.setProperty('--crew-scene-height', initialCrewHeight + 'px');
+    playground.style.setProperty('--crew-scene-offset', -initialCrewHeight * (phoneLayout.matches ? .38 : .57) + 'px');
+    selectProject(projects.findIndex(project => project.kind === cases[next]));
+  }
+}
+window.addEventListener('hashchange', showEarlyRoute);
+showEarlyRoute();
+function touchSwipe(element, change) {
+  let start;
+  element.addEventListener('pointerdown', event => {
+    start = null;
+    if (!phoneLayout.matches || event.pointerType !== 'touch' || event.target.closest('a, button, summary, video, input')) return;
+    start = { x: event.clientX, y: event.clientY, id: event.pointerId };
+  });
+  element.addEventListener('pointercancel', () => { start = null; });
+  element.addEventListener('pointerup', event => {
+    if (!start || start.id !== event.pointerId) return;
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
+    start = null;
+    if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.7) change(dx < 0 ? 1 : -1);
+  });
+}
+touchSwipe(document.querySelector('.preview'), step => browseProject(step, true));
+const mobileMain = document.querySelector('main');
+function updateReadingHeader() { mobileMain.classList.toggle('is-reading', phoneLayout.matches && window.scrollY > 100); }
+window.addEventListener('scroll', updateReadingHeader, { passive: true });
+phoneLayout.addEventListener('change', updateReadingHeader);
+updateReadingHeader();
 function pauseForProjectStory() { autoplay = false; updateAutoplay(); }
 document.querySelectorAll('.project-story').forEach(story => {
   story.addEventListener('pointerenter', pauseForProjectStory);
@@ -543,13 +627,15 @@ function makeCart(scene) {
 }
 
 async function init() {
+  const modules = await Promise.all([import('three'), import('./vendor/GLTFLoader.js'), import('./chonkimals/player.js'), import('./chonkimals/speech-bubbles.js')]);
+  [THREE, { GLTFLoader }, { createCharacter }, { SpeechBubbles }] = modules;
   const host = document.querySelector('#stage');
   const layoutMix = () => THREE.MathUtils.smoothstep(host.clientWidth, 540, 860);
   const wideMix = () => THREE.MathUtils.smoothstep(host.clientWidth, 980, 1200);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(29, 1, .1, 60);
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0xf7f3e9, 0);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, phoneLayout.matches ? 1.5 : 2)); renderer.setClearColor(0xf7f3e9, 0);
   renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
@@ -603,7 +689,7 @@ async function init() {
   let joel = null, joelLoad = null, aboutWelcomeAt = -Infinity;
   function loadJoel() {
     if (joelLoad) return joelLoad;
-    joelLoad = loader.loadAsync('./assets/joel_wave.glb').then(wave => {
+    joelLoad = loader.loadAsync('./assets/optimized/joel_wave.glb').then(wave => {
       const model = wave.scene;
       model.traverse(node => {
         if (!node.isMesh) return;
@@ -678,11 +764,16 @@ async function init() {
     floor.position.x = pan;
     sun.position.x = pan - 3; sun.target.position.x = pan; fill.position.x = pan + 4;
     groundMaterial.color.setHex(0xb7a17b).lerp(new THREE.Color(sceneSide < 0 ? 0xb7a17b : 0x829b76), sceneryProgress);
-    camera.position.set(pan, THREE.MathUtils.lerp(4.4, 5.0, layout), THREE.MathUtils.lerp(20.8, 14.5, layout));
-    camera.lookAt(pan, THREE.MathUtils.lerp(1.6, 3.2, layout), 0);
+    camera.position.set(pan, THREE.MathUtils.lerp(phoneLayout.matches ? 4.7 : 4.4, 5.0, layout), THREE.MathUtils.lerp(phoneLayout.matches ? 19.5 : 20.8, 14.5, layout));
+    camera.lookAt(pan, THREE.MathUtils.lerp(phoneLayout.matches ? 2.45 : 1.6, 3.2, layout), 0);
   }
   function applyView(next, alreadyRevealed = false) {
     const previous = view;
+    if (isCase(next) && !alreadyRevealed && !isCase(previous)) {
+      const fullHeight = playground.getBoundingClientRect().height;
+      playground.style.setProperty('--crew-scene-height', fullHeight + 'px');
+      playground.style.setProperty('--crew-scene-offset', -fullHeight * (phoneLayout.matches ? .38 : .57) + 'px');
+    }
     playground.hidden = false;
     if (isCase(next)) selectProject(projects.findIndex(project => project.kind === caseKinds[next]));
     const crewComment = document.querySelector('.crew-commentary');
@@ -720,7 +811,7 @@ async function init() {
       const introHeight = introWork.parentElement.getBoundingClientRect().height;
       const fullHeight = playground.getBoundingClientRect().height;
       const stripHeight = innerWidth <= 760 ? 124 : 154;
-      const sceneOffset = -fullHeight * .57;
+      const sceneOffset = -fullHeight * (phoneLayout.matches ? .38 : .57);
       playground.style.setProperty('--crew-scene-height', fullHeight + 'px');
       playground.style.setProperty('--crew-scene-offset', sceneOffset + 'px');
       main.dataset.casePage = 'true'; main.classList.add('is-hoisting');
@@ -821,7 +912,7 @@ async function init() {
     if (viewTransition?.to === next) return;
     if (next === view && !viewTransition) return;
     if (next === view && viewTransition) { viewTransition = null; applyView(next); main.classList.remove('is-traveling'); speech.setVisible(true); return; }
-    if (!speech) { applyView(next); return; }
+    if (!speech || !characters.length) { applyView(next); return; }
     if (paused || reduced.matches) { viewTransition = null; applyView(next); speech.setVisible(true); announcement.textContent = next === 'about' ? 'About and contact' : 'Projects'; return; }
     speech.bubbles.forEach(bubble => { bubble.age = 10; }); speech.setVisible(false);
     mishap.type = null; dangerButton.hidden = true;
@@ -871,11 +962,16 @@ async function init() {
     if (joel) joel.root.visible = next === 'about' ? !lowering : view === 'about';
     if (view === 'about' && next === 'work') waveJoel();
   }
+  touchSwipe(document.querySelector('.case-stage'), step => {
+    if (!isCase(view) || viewTransition || caseSwipe) return;
+    navigate(caseOrder[(caseOrder.indexOf(view) + step + caseOrder.length) % caseOrder.length], true, step);
+  });
   document.querySelectorAll(['work', 'about', ...caseOrder].map(route => `a[href="#${route}"]`).join(',')).forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.hash.slice(1), true, link.dataset.caseDirection ? Number(link.dataset.caseDirection) : null); }));
+  earlyNavigation = false;
   window.addEventListener('popstate', () => navigate(route(), false));
   window.addEventListener('hashchange', () => navigate(route(), false));
   document.querySelector('.crew-commentary button').addEventListener('click', () => { document.querySelector('.crew-commentary').hidden = true; });
-  const initialJoelLoad = loadJoel(); // Fetch Joel ahead of time, so switching scenes never waits on him.
+
   const holeLines = ['It said not to press!', 'Do you not believe in Chonkimal rights?', 'Ouch.', 'This was not in the risk assessment.', 'Tell Joel we tried.'];
   dangerButton.addEventListener('click', () => {
     if (holeEvent.active) return;
@@ -895,8 +991,9 @@ async function init() {
     speech.bubbles.forEach(bubble => { bubble.age = 10; }); speech.setVisible(false);
     announcement.textContent = 'You pressed the button. The worksite opened beneath the Chonkimals.';
   });
+  if (route() !== 'work') applyView(route(), isCase(route()));
   speech = new SpeechBubbles(document.querySelector('.playground'));
-  const gltfs = await Promise.all(['frog', 'bear', 'dog'].map(name => loader.loadAsync(`./assets/${name}.glb`)));
+  const gltfs = await Promise.all(['frog', 'bear', 'dog'].map(name => loader.loadAsync(`./assets/optimized/${name}.glb`)));
   for (const gltf of gltfs) for (const clip of gltf.animations) for (const track of clip.tracks) {
     if (!track.name.endsWith('.position')) continue; const v = track.values, [x, y, z] = v;
     for (let j = 0; j < v.length; j += 3) { v[j] = x; v[j + 1] = y; v[j + 2] = z; }
@@ -910,23 +1007,36 @@ async function init() {
     const idleOptions = index === 0 ? ['idle', 'idle_2', 'idle_3'] : index === 2 ? ['idle_3', 'idle_2', 'idle'] : ['idle'];
     return { root, actor, headTop, hat, dust, hatMode: hat ? 'worn' : null, hatStart: null, hatStartRotation: null, hatLandedAt: -Infinity, idleOptions, idleIndex: 0, nextIdleAt: 8 + index * 4, jumpStarted: -Infinity, nextHopAt: 11 + index * 5, hasJump: gltf.animations.some(c => c.name === 'jumping_up'), hasRun: gltf.animations.some(c => c.name === 'running'), hasWalk: gltf.animations.some(c => c.name === 'walking'), hasGreeting: gltf.animations.some(c => c.name === 'greeting'), reaction: 2, reactionKind: 'hover', lastReaction: -Infinity, lastClick: -Infinity, said: 0, aboutSaid: 0, pokes: 0 };
   });
-  const skins = await Promise.all(['raccoon', 'fox', 'shiba'].map(name => new THREE.TextureLoader().loadAsync(`./assets/skins/dog_${name}.jpg`)));
-  audience = skins.map((texture, index) => {
-    texture.flipY = false; texture.colorSpace = THREE.SRGBColorSpace;
-    const actor = createCharacter(gltfs[2], { lod: false }); actor.root.scale.setScalar(1.25 / actor.height);
-    actor.root.traverse(node => { if (!node.isMesh) return; const material = node.material.clone(); material.map = texture; node.material = material; });
-    actor.update(1, 'idle'); actor.root.updateMatrixWorld(true); actor.root.position.y -= new THREE.Box3().setFromObject(actor.root, true).min.y;
-    const root = new THREE.Group(); root.add(actor.root); scene.add(root);
-    const idleOptions = [['idle_2', 'idle'], ['idle_3', 'idle_2'], ['idle', 'idle_3']][index];
-    return { root, actor, index, idleOptions, idleIndex: 0, nextIdleAt: 10 + index * 3, arrived: false, reaction: 2, lastReaction: -Infinity, lastClick: -Infinity, aboutSaid: 0, pokes: 0 };
-  });
+  let audienceLoad = null;
+  function loadAudience() {
+    if (audienceLoad || phoneLayout.matches) return;
+    audienceLoad = (async () => {
+      const skins = await Promise.all(['raccoon', 'fox', 'shiba'].map(name => new THREE.TextureLoader().loadAsync(`./assets/skins/dog_${name}.jpg`)));
+      audience = skins.map((texture, index) => {
+        texture.flipY = false; texture.colorSpace = THREE.SRGBColorSpace;
+        const actor = createCharacter(gltfs[2], { lod: false }); actor.root.scale.setScalar(1.25 / actor.height);
+        actor.root.traverse(node => { if (!node.isMesh) return; const material = node.material.clone(); material.map = texture; node.material = material; });
+        actor.update(1, 'idle'); actor.root.updateMatrixWorld(true); actor.root.position.y -= new THREE.Box3().setFromObject(actor.root, true).min.y;
+        const root = new THREE.Group(); root.add(actor.root); scene.add(root);
+        const idleOptions = [['idle_2', 'idle'], ['idle_3', 'idle_2'], ['idle', 'idle_3']][index];
+        return { root, actor, index, idleOptions, idleIndex: 0, nextIdleAt: 10 + index * 3, arrived: false, reaction: 2, lastReaction: -Infinity, lastClick: -Infinity, aboutSaid: 0, pokes: 0 };
+      });
+    
+      audience.forEach(c => maskBelowGround(c.root));
+    })().catch(error => { console.warn('Spectators could not join', error); audienceLoad = null; });
+  }
+  setTimeout(loadAudience, 5000);
+  phoneLayout.addEventListener('change', () => { if (!phoneLayout.matches) loadAudience(); });
   [...characters, ...audience].forEach(c => maskBelowGround(c.root));
   document.querySelector('#loading').hidden = true; dangerButton.hidden = false;
-  if (route() !== 'work') { elapsed = Math.max(elapsed, 7); applyView(route()); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  if (route() !== 'work') { elapsed = Math.max(elapsed, 7); applyView(route(), isCase(route())); window.scrollTo({ top: 0, behavior: 'instant' }); }
   let layout = layoutMix(), wide = wideMix();
   function resize() {
     const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h;
+    renderer.setPixelRatio(Math.min(devicePixelRatio, phoneLayout.matches ? 1.5 : 2));
+    if (isCase(view) && !viewTransition) playground.style.setProperty('--crew-scene-offset', -h * (phoneLayout.matches ? .38 : .57) + 'px');
     layout = layoutMix(); wide = wideMix();
+    audience.forEach(guest => { guest.root.visible = !phoneLayout.matches; });
     cart.scale.setScalar(THREE.MathUtils.lerp(.86, 1, layout));
     camera.updateProjectionMatrix(); setSceneProgress(sceneProgress, scenePan, sceneryProgress); worksite.resize(layout, wide);
   }
@@ -977,8 +1087,8 @@ async function init() {
   renderer.domElement.addEventListener('pointerleave', () => { hovered = ''; renderer.domElement.style.cursor = 'default'; });
   renderer.domElement.addEventListener('click', event => react(hit(event), true));
   const clock = new THREE.Clock(); let lastLine = 0, guestLine = false;
-  let openingReady = false;
-  Promise.all([openingVisuals, initialJoelLoad]).then(() => { openingReady = true; });
+  let openingReady = true;
+  setTimeout(loadJoel, 500); // Warm up About only after the main crew is ready.
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), .04); if (document.hidden) return;
     if (sceneResizePending) { sceneResizePending = false; resize(); }
@@ -1209,11 +1319,12 @@ async function init() {
       const dustAge = (performance.now() - c.hatLandedAt) / 850;
       c.dust.update(viewTransition.to !== 'work' ? dustAge : -1, hatGroundPosition(index));
     });
-    if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
-    if (view === 'work' && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) browseProject(1); }
+    if (view === 'work' && !viewTransition && !holeEvent.active && !paused && elapsed - lastLine > 9 && elapsed > 6) { lastLine = elapsed; guestLine = !guestLine; if (guestLine && !phoneLayout.matches) say('guest-2', audienceLines[1 + (showing++ % (audienceLines.length - 1))]); else { const index = showing++ % 3; say(String(index), lines[index][characters[index].said++ % lines[index].length]); } }
+    if (view === 'work' && document.querySelector('#site-splash').hidden && !viewTransition && autoplay && !paused && !holeEvent.active && !isProjectPlayerOpen()) { projectElapsed += dt; if (projectElapsed >= PROJECT_DURATION) browseProject(1); }
     autoplayProgress.style.transform = `scaleX(${autoplay ? Math.min(1, projectElapsed / PROJECT_DURATION) : 0})`;
     updateSlideVideo(view === 'work' && !viewTransition && !paused && !document.hidden && !isProjectPlayerOpen());
     speech.update(paused ? 0 : dt, camera, (key, out) => { if (key === 'joel') { if (!joel || !joel.root.visible) return false; out.set(joel.root.position.x, JOEL_HEIGHT + .3, joel.root.position.z); return true; } if (key.startsWith('guest-')) { const c = audience[Number(key.slice(6))]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 1.65, c.root.position.z); return true; } const c = characters[Number(key)]; if (!c) return false; out.set(c.root.position.x, c.root.position.y + 2.55, c.root.position.z); return true; }, () => 1);
+    if (phoneLayout.matches) audience.forEach(guest => { guest.root.visible = false; });
     renderer.render(scene, camera);
     if (openingReady) { openingReady = false; window.finishSiteSplash?.(); }
   });

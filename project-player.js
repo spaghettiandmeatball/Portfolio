@@ -60,7 +60,7 @@ export function openProjectPlayer(project) {
   if (project.video) source.href = project.video;
   dialog.classList.toggle('is-game', !!(project.play || project.localVideo));
   fullscreenButton.hidden = !(project.play || project.localVideo);
-  setExpanded(false);
+  setExpanded(matchMedia('(max-width: 760px)').matches && !!(project.play || project.localVideo));
   if (project.localVideo) {
     const video = document.createElement('video');
     video.src = project.localVideo;
