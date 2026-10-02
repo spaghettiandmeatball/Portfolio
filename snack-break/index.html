@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Snack Break</title><link rel="stylesheet" href="style.css"></head>
+<body class="menu">
+<main class="game" aria-label="Snack Break game">
+  <canvas id="arena" tabindex="0" aria-label="Pull the cookie toward you, then release to throw forward. Keyboard: left and right aim, up and down power, Space throws."></canvas>
+  <nav class="corner"><a href="../#work" aria-label="Leave game">↖</a><button id="sound" aria-label="Enable sound" aria-pressed="false">♪</button><button id="pause" aria-label="Pause game">Ⅱ</button></nav>
+  <div class="game-top"><div><span id="level-number">PICNIC 01</span><h2 id="level-title">Lunch is served</h2></div><div id="deliveries" aria-label="5 chances remaining"><i></i><i></i><i></i><i></i><i></i></div></div>
+  <div class="arcade-hud"><strong id="points">0</strong><span id="combo">READY?</span><span id="timer">90s</span></div><div id="shot-pop" aria-live="polite"></div><div id="wave-banner" hidden></div><p id="reaction" role="status" aria-live="polite">Bear saved you a seat.</p>
+  <p class="hint" id="hint">Pull back the cookie. Let it fly!</p>
+  <section class="title-screen" id="title-screen"><p class="title-kicker">THE CHONKIMALS ARE HUNGRY</p><h1>Snack<br><span>Break!</span></h1><p>Bank it. Thread it. Feed the crew.</p><button id="play">Let's snack! ▸</button><small>90-second picnic · Seven courses · One hungry crew</small><p class="personal-best" id="personal-best">Your best: 0</p></section>
+  <div class="overlay" id="celebration" hidden><div><p class="eyebrow" id="complete-label">YUM!</p><h2 id="complete-title">One happy bear.</h2><p id="complete-copy"></p><div id="run-stats"></div><button id="next">Next hungry friend ▸</button><a href="../#work">Back to Joel's world ↗</a></div></div>
+  <div class="overlay" id="pause-screen" hidden><div><p class="eyebrow">TAKE YOUR TIME</p><h2>Snack intermission.</h2><button id="resume">Keep playing ▸</button><button class="secondary" id="reset">Restart picnic ↻</button><details><summary>Practice controls</summary><label>Course<select id="level"><option value="0">Bear</option><option value="1">Dog</option><option value="2">Frog</option></select></label><label>Angle <output id="angle-value">55°</output><input id="angle" type="range" min="20" max="80" value="55"></label><label>Power <output id="power-value">64%</output><input id="power" type="range" min="25" max="100" value="64"></label><button id="throw">Toss a snack ↗</button><p>Keyboard: ← → aim · ↑ ↓ power · Space throws.</p></details></div></div>
+</main><script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script><script type="module" src="game.js"></script>
+</body></html>
